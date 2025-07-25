@@ -6,6 +6,11 @@ WORKDIR /app
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
+
+# --- AÑADE ESTA LÍNEA PARA DAR PERMISOS ---
+RUN chmod +x ./mvnw
+
+# Ahora el script se puede ejecutar sin problemas
 RUN ./mvnw dependency:go-offline
 
 # Ahora copia el código fuente
