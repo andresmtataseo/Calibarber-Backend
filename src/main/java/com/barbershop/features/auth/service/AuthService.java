@@ -1,13 +1,12 @@
 package com.barbershop.features.auth.service;
 
-import com.barbershop.features.auth.dto.AuthResponseDto;
-import com.barbershop.features.auth.dto.SignInRequestDto;
-import com.barbershop.features.auth.dto.SignUpRequestDto;
-import com.barbershop.features.auth.dto.ChangePasswordRequestDto;
-import com.barbershop.features.auth.exception.InvalidCredentialsException;
-import com.barbershop.features.auth.exception.UserAlreadyExistsException;
-import com.barbershop.features.auth.exception.PasswordMismatchException;
+import com.barbershop.features.auth.dto.*;
+import com.barbershop.features.auth.exception.*;
+import com.barbershop.features.auth.model.PasswordResetToken;
+import com.barbershop.features.auth.repository.PasswordResetTokenRepository;
 import com.barbershop.features.auth.security.JwtService;
+import com.barbershop.features.auth.util.AuthUtils;
+import com.barbershop.features.auth.config.AuthProperties;
 import com.barbershop.features.auth.AuthUserMapper;
 import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.repository.UserRepository;
@@ -31,10 +30,13 @@ import java.time.LocalDateTime;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final AuthUserMapper authUserMapper;
+    private final AuthUtils authUtils;
+    private final AuthProperties authProperties;
 
     /**
      * Autentica un usuario con email y contraseña
@@ -169,6 +171,129 @@ public class AuthService {
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    /**
+     * Inicia el proceso de restablecimiento de contraseña
+     * @param request Datos de solicitud de restablecimiento
+     * @throws UserNotFoundException si el email no está registrado
+     */
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequestDto request) {
+        String email = authUtils.normalizeEmail(request.getEmail());
+        log.info("Iniciando proceso de restablecimiento de contraseña para: {}", email);
+        
+        // Verificar que el email existe
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new UserNotFoundException("No se encontró un usuario con el email proporcionado"));
+        
+        // Invalidar tokens existentes del usuario
+        passwordResetTokenRepository.markAllUserTokensAsUsed(user, LocalDateTime.now());
+        
+        // Generar nuevo token
+        String token = authUtils.generateResetToken();
+        LocalDateTime expiresAt = LocalDateTime.now()
+            .plusSeconds(authProperties.getResetToken().getExpirationTime() / 1000);
+        
+        // Crear y guardar token de restablecimiento
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+            .token(token)
+            .user(user)
+            .expiresAt(expiresAt)
+            .used(false)
+            .build();
+        
+        passwordResetTokenRepository.save(resetToken);
+        
+        log.info("Token de restablecimiento generado para usuario: {}", email);
+        
+        // TODO: Aquí se debería enviar el email con el token
+        // Por ahora solo logueamos el token para desarrollo
+        log.debug("Token de restablecimiento generado: {}", token);
+    }
+
+    /**
+     * Restablece la contraseña usando un token válido
+     * @param request Datos de restablecimiento de contraseña
+     * @throws InvalidResetTokenException si el token no es válido
+     */
+    @Transactional
+    public void resetPassword(ResetPasswordRequestDto request) {
+        log.info("Intentando restablecer contraseña con token");
+        
+        // Buscar token válido
+        PasswordResetToken resetToken = passwordResetTokenRepository
+            .findValidTokenByToken(request.getToken(), LocalDateTime.now())
+            .orElseThrow(() -> new InvalidResetTokenException("Token de restablecimiento inválido o expirado"));
+        
+        User user = resetToken.getUser();
+        
+        // Validar nueva contraseña
+        if (!authUtils.isValidPassword(request.getNewPassword())) {
+            throw new PasswordMismatchException(authUtils.getPasswordRequirementsMessage());
+        }
+        
+        // Actualizar contraseña
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        
+        // Marcar token como usado
+        resetToken.markAsUsed();
+        passwordResetTokenRepository.save(resetToken);
+        
+        // Invalidar todos los demás tokens del usuario
+        passwordResetTokenRepository.markAllUserTokensAsUsed(user, LocalDateTime.now());
+        
+        log.info("Contraseña restablecida exitosamente para usuario: {}", user.getEmail());
+    }
+
+    /**
+     * Verifica si el token JWT es válido y devuelve información del usuario
+     * @param token Token JWT a verificar
+     * @return Información del usuario autenticado
+     * @throws InvalidTokenException si el token no es válido
+     */
+    @Transactional(readOnly = true)
+    public CheckAuthResponseDto checkAuth(String token) {
+        try {
+            // Extraer email del token
+            String email = jwtService.getUsernameFromToken(token);
+            
+            // Buscar usuario
+            User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidTokenException("Usuario no encontrado"));
+            
+            // Verificar si el token es válido
+            boolean isTokenValid = jwtService.isTokenValid(token, user);
+            
+            if (!isTokenValid) {
+                throw new InvalidTokenException("Token inválido o expirado");
+            }
+            
+            return CheckAuthResponseDto.builder()
+                .userId(user.getUserId())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .fullName(user.getFirstName() + " " + user.getLastName())
+                .isActive(user.getIsActive())
+                .isTokenValid(true)
+                .build();
+                
+        } catch (Exception e) {
+            log.warn("Error al verificar token: {}", e.getMessage());
+            throw new InvalidTokenException("Token inválido");
+        }
+    }
+
+    /**
+     * Limpia tokens de restablecimiento expirados
+     * Este método debería ser llamado periódicamente por un scheduler
+     */
+    @Transactional
+    public void cleanupExpiredTokens() {
+        log.info("Limpiando tokens de restablecimiento expirados");
+        passwordResetTokenRepository.deleteExpiredTokens(LocalDateTime.now());
     }
 
 }

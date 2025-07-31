@@ -2,9 +2,11 @@ package com.barbershop.common.exception;
 
 import com.barbershop.common.dto.ApiResponseDto;
 import com.barbershop.features.auth.exception.InvalidCredentialsException;
+import com.barbershop.features.auth.exception.InvalidResetTokenException;
 import com.barbershop.features.auth.exception.InvalidTokenException;
 import com.barbershop.features.auth.exception.PasswordMismatchException;
 import com.barbershop.features.auth.exception.UserAlreadyExistsException;
+import com.barbershop.features.auth.exception.UserNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -277,6 +279,28 @@ public class GlobalExceptionHandler {
                         HttpStatus.UNAUTHORIZED, 
                         "Credenciales inválidas. Verifique su email y contraseña."
                 ));
+    }
+
+    /**
+     * Maneja excepciones cuando un usuario no es encontrado.
+     */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleUserNotFoundException(UserNotFoundException ex) {
+        log.warn("Usuario no encontrado: {}", ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponseDto.error(HttpStatus.NOT_FOUND, ex.getMessage()));
+    }
+
+    /**
+     * Maneja excepciones de tokens de restablecimiento inválidos.
+     */
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleInvalidResetTokenException(InvalidResetTokenException ex) {
+        log.warn("Token de restablecimiento inválido: {}", ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(HttpStatus.BAD_REQUEST, ex.getMessage()));
     }
 
     // ==================== MANEJADOR GENÉRICO ====================
