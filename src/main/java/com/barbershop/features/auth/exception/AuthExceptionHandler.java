@@ -6,13 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Manejador global de excepciones específico para el módulo de autenticación.
@@ -81,31 +76,7 @@ public class AuthExceptionHandler {
     }
 
     /**
-     * Maneja errores de validación de campos.
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
-        
-        Map<String, String> fieldErrors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            fieldErrors.put(fieldName, errorMessage);
-        });
-
-        log.warn("Errores de validación en campos: {}", fieldErrors);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(
-                        HttpStatus.BAD_REQUEST,
-                        "Errores de validación en los datos proporcionados",
-                        fieldErrors
-                ));
-    }
-
-    /**
-     * Maneja excepciones generales no capturadas específicamente.
+     * Maneja excepciones generales no capturadas específicamente en el módulo de autenticación.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponseDto<Void>> handleGenericException(Exception ex) {
@@ -114,7 +85,7 @@ public class AuthExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponseDto.error(
                         HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Ha ocurrido un error interno. Por favor, inténtelo más tarde."
+                        "Ha ocurrido un error interno en el sistema de autenticación. Por favor, inténtelo más tarde."
                 ));
     }
 }
