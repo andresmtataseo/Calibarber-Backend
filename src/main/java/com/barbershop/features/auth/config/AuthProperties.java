@@ -31,19 +31,23 @@ public class AuthProperties {
     @Data
     public static class Jwt {
         /**
-         * Tiempo de expiración del token JWT en milisegundos (por defecto 24 horas)
+         * Tiempo de expiración del token JWT en milisegundos
+         * Debe configurarse en application.properties como: app.auth.jwt.expiration-time
          */
-        private long expirationTime = 86400000L; // 24 horas
+        private long expirationTime;
 
         /**
          * Clave secreta para firmar los tokens JWT
+         * Debe configurarse en application.properties como: app.auth.jwt.secret-key
+         * IMPORTANTE: Usar una clave segura en producción
          */
-        private String secretKey = "defaultSecretKey";
+        private String secretKey;
 
         /**
          * Emisor del token
+         * Debe configurarse en application.properties como: app.auth.jwt.issuer
          */
-        private String issuer = "Calibarber-Backend";
+        private String issuer;
     }
 
     @Data
@@ -87,13 +91,15 @@ public class AuthProperties {
     @Data
     public static class ResetToken {
         /**
-         * Tiempo de expiración del token de restablecimiento en milisegundos (por defecto 1 hora)
+         * Tiempo de expiración del token de restablecimiento en milisegundos
+         * Debe configurarse en application.properties como: app.auth.reset-token.expiration-time
          */
-        private long expirationTime = 3600000L; // 1 hora
+        private long expirationTime;
 
         /**
          * Longitud del token de restablecimiento
+         * Debe configurarse en application.properties como: app.auth.reset-token.token-length
          */
-        private int tokenLength = 32;
+        private int tokenLength;
     }
 }

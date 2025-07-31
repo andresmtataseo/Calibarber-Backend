@@ -6,6 +6,8 @@ import com.barbershop.features.user.dto.request.UpdateUserRequestDto;
 import com.barbershop.features.user.model.User;
 import org.mapstruct.*;
 
+import java.util.List;
+
 @Mapper(
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
@@ -33,5 +35,5 @@ public interface UserMapper {
     UserResponseDto toResponseDto(User entity);
 
     @IterableMapping(elementTargetType = UserResponseDto.class)
-    java.util.List<UserResponseDto> toResponseDtoList(java.util.List<User> entities);
+    List<UserResponseDto> toResponseDtoList(List<User> entities);
 }

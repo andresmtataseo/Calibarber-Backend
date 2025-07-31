@@ -1,11 +1,12 @@
 package com.barbershop.features.auth.security;
 
+import com.barbershop.features.auth.config.AuthProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -19,13 +20,10 @@ import java.util.function.Function;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String SECRET_KEY;
-
-    @Value("${jwt.expiration}")
-    private Long EXPIRATION;
+    private final AuthProperties authProperties;
 
     /**
      * Genera un token JWT para el usuario
@@ -45,13 +43,14 @@ public class JwtService {
     private String getToken(Map<String, Object> extraClaims, UserDetails user) {
         extraClaims.put("roles", user.getAuthorities());
         Date issuedAt = new Date(System.currentTimeMillis());
-        Date expiration = new Date(System.currentTimeMillis() + EXPIRATION);
+        Date expiration = new Date(System.currentTimeMillis() + authProperties.getJwt().getExpirationTime());
         
         log.debug("Generando token para usuario: {} con expiración: {}", user.getUsername(), expiration);
         
         return Jwts.builder()
                 .claims(extraClaims)
                 .subject(user.getUsername())
+                .issuer(authProperties.getJwt().getIssuer())
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(getKey())
@@ -64,7 +63,7 @@ public class JwtService {
      */
     private SecretKey getKey() {
         try {
-            byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+            byte[] keyBytes = Decoders.BASE64.decode(authProperties.getJwt().getSecretKey());
             return Keys.hmacShaKeyFor(keyBytes);
         } catch (Exception e) {
             log.error("Error al decodificar la clave JWT", e);
