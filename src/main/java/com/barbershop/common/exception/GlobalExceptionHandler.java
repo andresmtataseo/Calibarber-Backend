@@ -1,12 +1,18 @@
 package com.barbershop.common.exception;
 
 import com.barbershop.common.dto.ApiResponseDto;
+import com.barbershop.features.auth.exception.InvalidCredentialsException;
+import com.barbershop.features.auth.exception.InvalidTokenException;
+import com.barbershop.features.auth.exception.PasswordMismatchException;
+import com.barbershop.features.auth.exception.UserAlreadyExistsException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -213,7 +219,67 @@ public class GlobalExceptionHandler {
                 ));
     }
 
- 
+    // ==================== MANEJADORES DE EXCEPCIONES DE AUTENTICACIÓN ====================
+
+    /**
+     * Maneja excepciones de credenciales inválidas.
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleInvalidCredentials(InvalidCredentialsException ex) {
+        log.warn("Intento de inicio de sesión con credenciales inválidas: {}", ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseDto.error(HttpStatus.UNAUTHORIZED, ex.getMessage()));
+    }
+
+    /**
+     * Maneja excepciones cuando un usuario ya existe.
+     */
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+        log.warn("Intento de registro con email ya existente: {}", ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponseDto.error(HttpStatus.CONFLICT, ex.getMessage()));
+    }
+
+    /**
+     * Maneja excepciones de contraseñas que no coinciden.
+     */
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handlePasswordMismatch(PasswordMismatchException ex) {
+        log.warn("Error de validación de contraseña: {}", ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponseDto.error(HttpStatus.BAD_REQUEST, ex.getMessage()));
+    }
+
+    /**
+     * Maneja excepciones de tokens inválidos.
+     */
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ApiResponseDto<Void>> handleInvalidToken(InvalidTokenException ex) {
+        log.warn("Token inválido o expirado: {}", ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseDto.error(HttpStatus.UNAUTHORIZED, ex.getMessage()));
+    }
+
+    /**
+     * Maneja excepciones de autenticación de Spring Security.
+     */
+    @ExceptionHandler({BadCredentialsException.class, AuthenticationException.class})
+    public ResponseEntity<ApiResponseDto<Void>> handleAuthenticationException(AuthenticationException ex) {
+        log.warn("Error de autenticación: {}", ex.getMessage());
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponseDto.error(
+                        HttpStatus.UNAUTHORIZED, 
+                        "Credenciales inválidas. Verifique su email y contraseña."
+                ));
+    }
+
+    // ==================== MANEJADOR GENÉRICO ====================
     /**
      * Manejador genérico para cualquier otra excepción no esperada.
      */
