@@ -4,7 +4,7 @@ import com.barbershop.features.auth.dto.AuthResponseDto;
 import com.barbershop.features.auth.dto.SignInRequestDto;
 import com.barbershop.features.auth.dto.SignUpRequestDto;
 import com.barbershop.features.auth.security.JwtService;
-import com.barbershop.features.auth.UserMapper;
+import com.barbershop.features.auth.AuthUserMapper;
 import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.repository.UserRepository;
 import com.barbershop.features.user.model.User;
@@ -23,7 +23,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final UserMapper userMapper;
+    private final AuthUserMapper authUserMapper;
 
     public AuthResponseDto signIn(SignInRequestDto request) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
@@ -32,21 +32,21 @@ public class AuthService {
         return AuthResponseDto.builder()
                 .token(token)
                 .type("Bearer")
-                .user(userMapper.toUserResponseDto(userRepository.findByEmail(request.getEmail()).orElseThrow()))
+                .user(authUserMapper.toUserResponseDto(userRepository.findByEmail(request.getEmail()).orElseThrow()))
                 .build();
 
     }
 
     public AuthResponseDto signUp(SignUpRequestDto request) {
-        User user = userMapper.toUser(request);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole(RoleEnum.ROLE_CLIENT);
+        User user = authUserMapper.toUser(request);
+        user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
+        user.setRole(RoleEnum.CLIENT);
         user = userRepository.save(user);
 
         return AuthResponseDto.builder()
                 .token(jwtService.getToken(user))
                 .type("Bearer")
-                .user(userMapper.toUserResponseDto(user))
+                .user(authUserMapper.toUserResponseDto(user))
                 .build();
     }
 }

@@ -7,7 +7,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
-public interface UserMapper {
+public interface AuthUserMapper {
 
     @Mapping(target = "role", ignore = true)
     User toUser(SignUpRequestDto signUpRequestDto);

@@ -26,7 +26,7 @@ WORKDIR /app
 # Copia el JAR desde la etapa de construcción
 COPY --from=builder /app/target/*.jar app.jar
 
-# Expone el puerto que Render usará
+# Expone el puerto que usará
 EXPOSE 8080
 
 # Comando para ejecutar la aplicación
