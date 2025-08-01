@@ -119,6 +119,15 @@ public class AuthService {
         
         log.info("Usuario registrado exitosamente: {}", request.getEmail());
         
+        // Enviar email de bienvenida
+        try {
+            emailService.enviarEmailBienvenida(user.getEmail(), user.getFirstName());
+            log.info("Email de bienvenida enviado exitosamente a: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Error al enviar email de bienvenida a {}: {}", user.getEmail(), e.getMessage());
+            // No lanzamos excepción para no afectar el registro del usuario
+        }
+        
         return AuthResponseDto.builder()
                 .token(token)
                 .type("Bearer")
