@@ -36,7 +36,7 @@ public class AuthController {
 
     @Operation(
             summary = "Inicia sesión de un usuario",
-            description = "Autentica a un usuario con su email y contraseña y devuelve un token JWT con información esencial de autenticación.",
+            description = "Autentica a un usuario con su email y contraseña y devuelve un token JWT con información esencial de autenticación. **No requiere autenticación previa.**",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -66,7 +66,7 @@ public class AuthController {
 
     @Operation(
             summary = "Registra un nuevo usuario",
-            description = "Crea una nueva cuenta de usuario con el rol por defecto (CLIENTE) y devuelve un token JWT con información esencial de autenticación.",
+            description = "Crea una nueva cuenta de usuario con el rol por defecto (CLIENTE) y devuelve un token JWT con información esencial de autenticación. **No requiere autenticación previa.**",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -135,7 +135,7 @@ public class AuthController {
 
     @Operation(
             summary = "Verifica si un email está disponible",
-            description = "Verifica si un email específico ya está registrado en el sistema.",
+            description = "Verifica si un email específico ya está registrado en el sistema. **No requiere autenticación.**",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -161,7 +161,7 @@ public class AuthController {
 
     @Operation(
             summary = "Solicita restablecimiento de contraseña",
-            description = "Inicia el proceso de restablecimiento de contraseña enviando un token de restablecimiento al email del usuario.",
+            description = "Inicia el proceso de restablecimiento de contraseña enviando un token de restablecimiento al email del usuario. **No requiere autenticación previa.**",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -192,7 +192,7 @@ public class AuthController {
 
     @Operation(
             summary = "Restablece la contraseña",
-            description = "Restablece la contraseña del usuario usando un token válido de restablecimiento.",
+            description = "Restablece la contraseña del usuario usando un token válido de restablecimiento. **No requiere autenticación previa.**",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

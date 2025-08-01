@@ -11,6 +11,7 @@ import com.barbershop.features.auth.AuthUserMapper;
 import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.repository.UserRepository;
 import com.barbershop.features.user.model.User;
+import com.barbershop.common.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -37,6 +38,7 @@ public class AuthService {
     private final AuthUserMapper authUserMapper;
     private final AuthUtils authUtils;
     private final AuthProperties authProperties;
+    private final EmailService emailService;
 
     /**
      * Autentica un usuario con email y contraseña
@@ -207,9 +209,17 @@ public class AuthService {
         
         log.info("Token de restablecimiento generado para usuario: {}", email);
         
-        // TODO: Aquí se debería enviar el email con el token
-        // Por ahora solo logueamos el token para desarrollo
-        log.debug("Token de restablecimiento generado: {}", token);
+        // Enviar token por correo electrónico
+        try {
+            int tiempoExpiracionMinutos = (int) (authProperties.getResetToken().getExpirationTime() / 1000 / 60);
+            emailService.enviarTokenRecuperacion(user.getEmail(), user.getFirstName(), token, tiempoExpiracionMinutos);
+            log.info("Correo de recuperación enviado exitosamente a: {}", email);
+            
+        } catch (Exception e) {
+            log.error("Error al enviar correo de recuperación a {}: {}", email, e.getMessage());
+            // No lanzamos excepción para no revelar si el email existe o no
+            // El token se guarda de todas formas para que funcione si el usuario lo tiene
+        }
     }
 
     /**
