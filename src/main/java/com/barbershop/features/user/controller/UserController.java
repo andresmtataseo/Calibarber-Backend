@@ -35,14 +35,14 @@ public class UserController {
             }
     )
     @GetMapping(ApiConstants.USER_ALL_URL)
-    public ResponseEntity<ApiResponseDto<String>> findAll(WebRequest request) {
+    public ResponseEntity<ApiResponseDto<String>> findAll(HttpServletRequest request) {
 
         return ResponseEntity.ok(
                 ApiResponseDto.<String>builder()
                         .status(HttpStatus.OK.value())
                         .message("Usuarios obtenidos exitosamente")
                         .timestamp(LocalDateTime.now())
-                        .path(request.getContextPath())
+                        .path(request.getRequestURI())
                         .data("usuariosDto")
                         .build()
         );
