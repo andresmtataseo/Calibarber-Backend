@@ -25,13 +25,11 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import jakarta.persistence.EntityNotFoundException;
+
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Manejador global de excepciones para toda la aplicación.
- * Captura excepciones no manejadas por manejadores específicos de módulos.
- */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
@@ -40,8 +38,7 @@ public class GlobalExceptionHandler {
      * Maneja excepciones de validación de campos (@Valid).
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleValidationExceptions(
-            MethodArgumentNotValidException ex, WebRequest request) {
+    public ResponseEntity<ApiResponseDto<String>> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
         
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
@@ -50,175 +47,202 @@ public class GlobalExceptionHandler {
             fieldErrors.put(fieldName, errorMessage);
         });
 
-        log.warn("Errores de validación global: {}", fieldErrors);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(
-                        HttpStatus.BAD_REQUEST,
-                        "Error de validación en los campos de entrada",
-                        fieldErrors
-                ));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Error de validación en los campos de entrada")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .errors(fieldErrors)
+                        .build()
+        );
     }
 
     /**
      * Maneja IllegalArgumentException (argumentos inválidos).
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleIllegalArgumentException(
+    public ResponseEntity<ApiResponseDto<String>> handleIllegalArgumentException(
             IllegalArgumentException ex, WebRequest request) {
-        
-        log.warn("Argumento ilegal: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(HttpStatus.BAD_REQUEST, ex.getMessage()));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Error de argumentos inválidos: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja EntityNotFoundException (entidad no encontrada).
      */
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleEntityNotFoundException(
+    public ResponseEntity<ApiResponseDto<String>> handleEntityNotFoundException(
             EntityNotFoundException ex, WebRequest request) {
-        
-        log.warn("Entidad no encontrada: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponseDto.error(HttpStatus.NOT_FOUND, "El recurso solicitado no fue encontrado"));
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .message("El recurso solicitado no fue encontrado: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja DataIntegrityViolationException (violación de integridad de datos).
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleDataIntegrityViolationException(
+    public ResponseEntity<ApiResponseDto<String>> handleDataIntegrityViolationException(
             DataIntegrityViolationException ex, WebRequest request) {
-        
-        log.warn("Violación de integridad de datos: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponseDto.error(
-                        HttpStatus.CONFLICT, 
-                        "Error de integridad de datos. Verifique que los datos no estén duplicados o que cumplan las restricciones."
-                ));
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.CONFLICT.value())
+                        .message("Error de integridad de datos: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja AccessDeniedException (acceso denegado).
      */
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleAccessDeniedException(
+    public ResponseEntity<ApiResponseDto<String>> handleAccessDeniedException(
             AccessDeniedException ex, WebRequest request) {
-        
-        log.warn("Acceso denegado: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponseDto.error(
-                        HttpStatus.FORBIDDEN, 
-                        "No tiene permisos para acceder a este recurso"
-                ));
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.FORBIDDEN.value())
+                        .message("No tiene permisos para acceder a este recurso: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja HttpRequestMethodNotSupportedException (método HTTP no soportado).
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleHttpRequestMethodNotSupportedException(
+    public ResponseEntity<ApiResponseDto<String>> handleHttpRequestMethodNotSupportedException(
             HttpRequestMethodNotSupportedException ex, WebRequest request) {
-        
-        log.warn("Método HTTP no soportado: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(ApiResponseDto.error(
-                        HttpStatus.METHOD_NOT_ALLOWED, 
-                        "Método HTTP no permitido para este endpoint"
-                ));
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.METHOD_NOT_ALLOWED.value())
+                        .message("Método HTTP no permitido para este endpoint: " + ex.getMethod() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja HttpMessageNotReadableException (cuerpo de petición no legible).
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleHttpMessageNotReadableException(
+    public ResponseEntity<ApiResponseDto<String>> handleHttpMessageNotReadableException(
             HttpMessageNotReadableException ex, WebRequest request) {
-        
-        log.warn("Cuerpo de petición no legible: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(
-                        HttpStatus.BAD_REQUEST, 
-                        "El formato del cuerpo de la petición es inválido"
-                ));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("El formato del cuerpo de la petición es inválido: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja MissingServletRequestParameterException (parámetro requerido faltante).
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleMissingServletRequestParameterException(
+    public ResponseEntity<ApiResponseDto<String>> handleMissingServletRequestParameterException(
             MissingServletRequestParameterException ex, WebRequest request) {
-        
-        log.warn("Parámetro requerido faltante: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(
-                        HttpStatus.BAD_REQUEST, 
-                        "Parámetro requerido faltante: " + ex.getParameterName()
-                ));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Parámetro requerido faltante: " + ex.getParameterName() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja ResourceNotFoundException (recurso no encontrado).
      */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleResourceNotFoundException(
+    public ResponseEntity<ApiResponseDto<String>> handleResourceNotFoundException(
             ResourceNotFoundException ex, WebRequest request) {
-        
-        log.warn("Recurso no encontrado: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponseDto.error(HttpStatus.NOT_FOUND, ex.getMessage()));
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .message("Recurso no encontrado: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja BusinessLogicException (error de lógica de negocio).
      */
     @ExceptionHandler(BusinessLogicException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleBusinessLogicException(
+    public ResponseEntity<ApiResponseDto<String>> handleBusinessLogicException(
             BusinessLogicException ex, WebRequest request) {
-        
-        log.warn("Error de lógica de negocio: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(HttpStatus.BAD_REQUEST, ex.getMessage()));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Error de lógica de negocio: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja ResourceAlreadyExistsException (recurso ya existe).
      */
     @ExceptionHandler(ResourceAlreadyExistsException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleResourceAlreadyExistsException(
+    public ResponseEntity<ApiResponseDto<String>> handleResourceAlreadyExistsException(
             ResourceAlreadyExistsException ex, WebRequest request) {
-        
-        log.warn("Recurso ya existe: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponseDto.error(HttpStatus.CONFLICT, ex.getMessage()));
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.CONFLICT.value())
+                        .message("Recurso ya existe: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja MethodArgumentTypeMismatchException (tipo de argumento incorrecto).
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleMethodArgumentTypeMismatchException(
+    public ResponseEntity<ApiResponseDto<String>> handleMethodArgumentTypeMismatchException(
             MethodArgumentTypeMismatchException ex, WebRequest request) {
-        
-        log.warn("Tipo de argumento incorrecto: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(
-                        HttpStatus.BAD_REQUEST, 
-                        "Tipo de dato incorrecto para el parámetro: " + ex.getName()
-                ));
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Tipo de argumento incorrecto: " + ex.getName() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     // ==================== MANEJADORES DE EXCEPCIONES DE AUTENTICACIÓN ====================
@@ -227,80 +251,112 @@ public class GlobalExceptionHandler {
      * Maneja excepciones de credenciales inválidas.
      */
     @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleInvalidCredentials(InvalidCredentialsException ex) {
-        log.warn("Intento de inicio de sesión con credenciales inválidas: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponseDto.error(HttpStatus.UNAUTHORIZED, ex.getMessage()));
+    public ResponseEntity<ApiResponseDto<String>> handleInvalidCredentials(InvalidCredentialsException ex, WebRequest request) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .message("Credenciales inválidas: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja excepciones cuando un usuario ya existe.
      */
     @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleUserAlreadyExists(UserAlreadyExistsException ex) {
-        log.warn("Intento de registro con email ya existente: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponseDto.error(HttpStatus.CONFLICT, ex.getMessage()));
+    public ResponseEntity<ApiResponseDto<String>> handleUserAlreadyExists(UserAlreadyExistsException ex, WebRequest request) {
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.CONFLICT.value())
+                        .message("Usuario ya existe: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja excepciones de contraseñas que no coinciden.
      */
     @ExceptionHandler(PasswordMismatchException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handlePasswordMismatch(PasswordMismatchException ex) {
-        log.warn("Error de validación de contraseña: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(HttpStatus.BAD_REQUEST, ex.getMessage()));
+    public ResponseEntity<ApiResponseDto<String>> handlePasswordMismatch(PasswordMismatchException ex, WebRequest request) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Contraseñas no coinciden: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja excepciones de tokens inválidos.
      */
     @ExceptionHandler(InvalidTokenException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleInvalidToken(InvalidTokenException ex) {
-        log.warn("Token inválido o expirado: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponseDto.error(HttpStatus.UNAUTHORIZED, ex.getMessage()));
+    public ResponseEntity<ApiResponseDto<String>> handleInvalidToken(InvalidTokenException ex, WebRequest request) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .message("Token inválido o expirado: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja excepciones de autenticación de Spring Security.
      */
     @ExceptionHandler({BadCredentialsException.class, AuthenticationException.class})
-    public ResponseEntity<ApiResponseDto<Void>> handleAuthenticationException(AuthenticationException ex) {
-        log.warn("Error de autenticación: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponseDto.error(
-                        HttpStatus.UNAUTHORIZED, 
-                        "Credenciales inválidas. Verifique su email y contraseña."
-                ));
+    public ResponseEntity<ApiResponseDto<String>> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .message("Error de autenticación: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja excepciones cuando un usuario no es encontrado.
      */
     @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleUserNotFoundException(UserNotFoundException ex) {
-        log.warn("Usuario no encontrado: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponseDto.error(HttpStatus.NOT_FOUND, ex.getMessage()));
+    public ResponseEntity<ApiResponseDto<String>> handleUserNotFoundException(UserNotFoundException ex, WebRequest request) {
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .message("Usuario no encontrado: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     /**
      * Maneja excepciones de tokens de restablecimiento inválidos.
      */
     @ExceptionHandler(InvalidResetTokenException.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleInvalidResetTokenException(InvalidResetTokenException ex) {
-        log.warn("Token de restablecimiento inválido: {}", ex.getMessage());
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponseDto.error(HttpStatus.BAD_REQUEST, ex.getMessage()));
+    public ResponseEntity<ApiResponseDto<String>> handleInvalidResetTokenException(InvalidResetTokenException ex, WebRequest request) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Token de restablecimiento inválido: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 
     // ==================== MANEJADOR GENÉRICO ====================
@@ -308,15 +364,16 @@ public class GlobalExceptionHandler {
      * Manejador genérico para cualquier otra excepción no esperada.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponseDto<Void>> handleGlobalException(
+    public ResponseEntity<ApiResponseDto<String>> handleGlobalException(
             Exception ex, WebRequest request) {
-        
-        log.error("Error inesperado: {} - {}", ex.getClass().getName(), ex.getMessage(), ex);
-        
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponseDto.error(
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Ocurrió un error inesperado en el servidor. Por favor, inténtelo de nuevo más tarde."
-                ));
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        .message("Error inesperado: " + ex.getMessage() + ".")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .build()
+        );
     }
 }

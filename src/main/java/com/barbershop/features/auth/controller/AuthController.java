@@ -11,7 +11,10 @@ import com.barbershop.features.auth.dto.SignUpRequestDto;
 import com.barbershop.features.auth.service.AuthService;
 import com.barbershop.features.auth.service.TokenCleanupService;
 import com.barbershop.common.util.ApiConstants;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping(ApiConstants.AUTH_API_BASE_URL)
@@ -56,12 +61,18 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.SIGN_IN_URL)
-    public ResponseEntity<ApiResponseDto<AuthResponseDto>> signIn(@Valid @RequestBody SignInRequestDto signInRequestDto){
+    @SecurityRequirements({})
+    public ResponseEntity<ApiResponseDto<AuthResponseDto>> signIn(@Valid @RequestBody SignInRequestDto signInRequestDto, HttpServletRequest request) {
         AuthResponseDto authResponse = authService.signIn(signInRequestDto);
-        return ResponseEntity.ok(ApiResponseDto.success(
-                "Inicio de sesión exitoso",
-                authResponse
-        ));
+        return ResponseEntity.ok(
+                ApiResponseDto.<AuthResponseDto>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Inicio de sesión exitoso")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .data(authResponse)
+                        .build()
+        );
     }
 
     @Operation(
@@ -86,15 +97,19 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.SIGN_UP_URL)
-    public ResponseEntity<ApiResponseDto<AuthResponseDto>> signUp(@Valid @RequestBody SignUpRequestDto signUpRequestDto){
+    @SecurityRequirements({})
+    public ResponseEntity<ApiResponseDto<AuthResponseDto>> signUp(@Valid @RequestBody SignUpRequestDto signUpRequestDto, HttpServletRequest request) {
         AuthResponseDto authResponse = authService.signUp(signUpRequestDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponseDto.success(
-                HttpStatus.CREATED,
-                "Usuario registrado exitosamente",
-                authResponse
-        ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponseDto.<AuthResponseDto>builder()
+                        .status(HttpStatus.CREATED.value())
+                        .message("Usuario registrado exitosamente")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .data(authResponse)
+                        .build()
+        );
     }
-
 
 
     @Operation(
@@ -122,15 +137,18 @@ public class AuthController {
     @PutMapping(ApiConstants.CHANGE_PASSWORD_URL)
     public ResponseEntity<ApiResponseDto<String>> changePassword(
             @Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto,
-            Authentication authentication) {
-        
+            Authentication authentication,
+            HttpServletRequest request) {
         String userEmail = authentication.getName();
         authService.changePassword(changePasswordRequestDto, userEmail);
-        
-        return ResponseEntity.ok(ApiResponseDto.success(
-                "Contraseña cambiada exitosamente",
-                "La contraseña ha sido actualizada correctamente"
-        ));
+        return ResponseEntity.ok(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Contraseña cambiada exitosamente")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .build()
+        );
     }
 
     @Operation(
@@ -150,13 +168,21 @@ public class AuthController {
             }
     )
     @GetMapping(ApiConstants.CHECK_EMAIL_URL)
-    public ResponseEntity<ApiResponseDto<Boolean>> checkEmailAvailability(@RequestParam String email) {
+    @SecurityRequirements({})
+    public ResponseEntity<ApiResponseDto<String>> checkEmailAvailability(@RequestParam @Valid @Email String email, HttpServletRequest request) {
+
         boolean exists = authService.emailExists(email);
-        
-        String message = exists ? "El email ya está registrado" : "El email está disponible";
-        Boolean isAvailable = !exists; // true si está disponible, false si ya existe
-        
-        return ResponseEntity.ok(ApiResponseDto.success(message, isAvailable));
+
+        String message = exists ? "El email no está disponible" : "El email está disponible";
+
+        return ResponseEntity.ok(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.OK.value())
+                        .message(message)
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .build()
+        );
     }
 
     @Operation(
@@ -181,13 +207,18 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.FORGOT_PASSWORD_URL)
-    public ResponseEntity<ApiResponseDto<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto request) {
+    @SecurityRequirements({})
+    public ResponseEntity<ApiResponseDto<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto request, HttpServletRequest request2) {
         authService.forgotPassword(request);
-        
-        return ResponseEntity.ok(ApiResponseDto.success(
-                "Si el email está registrado, recibirás un enlace para restablecer tu contraseña",
-                "Solicitud procesada exitosamente"
-        ));
+
+        return ResponseEntity.ok(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Solicitud procesada exitosamente")
+                        .timestamp(LocalDateTime.now())
+                        .path(request2.getRequestURI())
+                        .build()
+        );
     }
 
     @Operation(
@@ -207,13 +238,18 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.RESET_PASSWORD_URL)
-    public ResponseEntity<ApiResponseDto<String>> resetPassword(@Valid @RequestBody ResetPasswordRequestDto request) {
+    @SecurityRequirements({})
+    public ResponseEntity<ApiResponseDto<String>> resetPassword(@Valid @RequestBody ResetPasswordRequestDto request, HttpServletRequest request2) {
         authService.resetPassword(request);
-        
-        return ResponseEntity.ok(ApiResponseDto.success(
-                "Contraseña restablecida exitosamente",
-                "Tu contraseña ha sido actualizada correctamente"
-        ));
+
+        return ResponseEntity.ok(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Contraseña restablecida exitosamente")
+                        .timestamp(LocalDateTime.now())
+                        .path(request2.getRequestURI())
+                        .build()
+        );
     }
 
     @Operation(
@@ -234,16 +270,21 @@ public class AuthController {
             }
     )
     @GetMapping("/check-auth")
-    public ResponseEntity<ApiResponseDto<CheckAuthResponseDto>> checkAuth(@RequestHeader("Authorization") String authHeader) {
-        // Extraer el token del header Authorization (formato: "Bearer <token>")
-        String token = authHeader.substring(7); // Remover "Bearer "
-        
+    @SecurityRequirements({})
+    public ResponseEntity<ApiResponseDto<CheckAuthResponseDto>> checkAuth(@RequestHeader("Authorization") String authHeader,HttpServletRequest request) {
+        String token = authHeader.substring(7);
+
         CheckAuthResponseDto authInfo = authService.checkAuth(token);
-        
-        return ResponseEntity.ok(ApiResponseDto.success(
-                "Token válido",
-                authInfo
-        ));
+
+        return ResponseEntity.ok(
+                ApiResponseDto.<CheckAuthResponseDto>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Token válido")
+                        .data(authInfo)
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .build()
+        );
     }
 
     @Operation(
@@ -264,12 +305,17 @@ public class AuthController {
             }
     )
     @PostMapping("/admin/cleanup-tokens")
-    public ResponseEntity<ApiResponseDto<String>> cleanupExpiredTokens() {
+    public ResponseEntity<ApiResponseDto<String>> cleanupExpiredTokens(HttpServletRequest request) {
         int deletedTokens = tokenCleanupService.cleanupExpiredTokensManually();
-        
-        return ResponseEntity.ok(ApiResponseDto.success(
-                "Limpieza de tokens completada",
-                String.format("Se eliminaron %d tokens expirados", deletedTokens)
-        ));
+
+        return ResponseEntity.ok(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Limpieza completada exitosamente")
+                        .data("Tokens eliminados: " + deletedTokens)
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .build()
+        );
     }
 }

@@ -1,4 +1,4 @@
-package com.barbershop.common.config;
+package com.barbershop.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

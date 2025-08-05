@@ -2,14 +2,20 @@ package com.barbershop.features.user.controller;
 
 import com.barbershop.common.dto.ApiResponseDto;
 import com.barbershop.common.util.ApiConstants;
+import com.barbershop.features.auth.dto.AuthResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.WebRequest;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping(ApiConstants.USER_API_BASE_URL)
@@ -29,12 +35,17 @@ public class UserController {
             }
     )
     @GetMapping(ApiConstants.USER_ALL_URL)
-    public ResponseEntity<ApiResponseDto<String>> findAll() {
-        // Implementación temporal - se debe reemplazar con la lógica real
-        return ResponseEntity.ok(ApiResponseDto.success(
-                "Usuarios obtenidos exitosamente",
-                "Todos los usuarios"
-        ));
+    public ResponseEntity<ApiResponseDto<String>> findAll(WebRequest request) {
+
+        return ResponseEntity.ok(
+                ApiResponseDto.<String>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Usuarios obtenidos exitosamente")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getContextPath())
+                        .data("usuariosDto")
+                        .build()
+        );
     }
 
 }
