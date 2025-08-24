@@ -1,4 +1,4 @@
-package com.barbershop.features.health.controller;
+package com.barbershop.common.controller;
 
 import com.barbershop.common.dto.ApiResponseDto;
 import io.swagger.v3.oas.annotations.Operation;

@@ -7,11 +7,16 @@ import com.barbershop.features.user.dto.UserResponseDto;
 import com.barbershop.features.user.dto.UserUpdateDto;
 import com.barbershop.features.user.mapper.UserMapper;
 import com.barbershop.features.user.model.User;
+import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,6 +69,11 @@ public class UserService {
         log.info("Obteniendo usuarios paginados: página {}, tamaño {}", 
                 pageable.getPageNumber(), pageable.getPageSize());
         
+        // Verificar que solo los administradores puedan ver todos los usuarios
+        if (!isCurrentUserAdmin()) {
+            throw new AccessDeniedException("No tienes permisos para ver la lista de usuarios");
+        }
+        
         Page<User> users = userRepository.findAllActive(pageable);
         return users.map(userMapper::toResponseDto);
     }
@@ -78,6 +88,11 @@ public class UserService {
         User user = userRepository.findByIdAndNotDeleted(userId)
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + userId));
         
+        // Verificar autorización
+        if (!canAccessUser(userId)) {
+            throw new AccessDeniedException("No tienes permisos para acceder a este usuario");
+        }
+        
         return userMapper.toResponseDto(user);
     }
 
@@ -89,6 +104,11 @@ public class UserService {
         
         User user = userRepository.findByIdAndNotDeleted(userId)
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + userId));
+        
+        // Verificar autorización
+        if (!canAccessUser(userId)) {
+            throw new AccessDeniedException("No tienes permisos para modificar este usuario");
+        }
         
         // Verificar si el email ya existe para otro usuario
         if (updateDto.getEmail() != null && !updateDto.getEmail().equals(user.getEmail())) {
@@ -172,5 +192,81 @@ public class UserService {
         return deletedUsers.map(userMapper::toResponseDto);
     }
 
+    /**
+     * Verifica si el usuario autenticado puede acceder a los datos del usuario especificado
+     */
+    private boolean canAccessUser(String targetUserId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        
+        // Verificar si es un usuario mock con rol ADMIN (para tests)
+        if (hasRole(authentication, "ROLE_ADMIN") || hasRole(authentication, "ADMIN")) {
+            return true;
+        }
+        
+        String currentUserEmail = authentication.getName();
+        
+        // Obtener el usuario autenticado de la base de datos
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElse(null);
+        
+        if (currentUser != null) {
+            // Los administradores pueden acceder a cualquier usuario
+            if (RoleEnum.ADMIN.equals(currentUser.getRole())) {
+                return true;
+            }
+            
+            // Los usuarios solo pueden acceder a su propia información
+            return currentUser.getUserId().equals(targetUserId);
+        }
+        
+        // Para usuarios mock en tests, verificar si el username coincide con el email del usuario objetivo
+        User targetUser = userRepository.findByIdAndNotDeleted(targetUserId).orElse(null);
+        if (targetUser != null && currentUserEmail.equals(targetUser.getEmail())) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Verifica si el usuario autenticado es un administrador
+     */
+    private boolean isCurrentUserAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        
+        // Verificar si es un usuario mock con rol ADMIN (para tests)
+        if (hasRole(authentication, "ROLE_ADMIN") || hasRole(authentication, "ADMIN")) {
+            return true;
+        }
+        
+        String currentUserEmail = authentication.getName();
+        
+        // Obtener el usuario autenticado de la base de datos
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElse(null);
+        
+        if (currentUser == null) {
+            return false;
+        }
+        
+        return RoleEnum.ADMIN.equals(currentUser.getRole());
+    }
+    
+    /**
+     * Verifica si el usuario autenticado tiene un rol específico
+     */
+    private boolean hasRole(Authentication authentication, String role) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> authority.equals(role));
+    }
 
 }
