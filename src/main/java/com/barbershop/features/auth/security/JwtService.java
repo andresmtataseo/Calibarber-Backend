@@ -79,6 +79,29 @@ public class JwtService {
     public String getUsernameFromToken(String token) {
         return getClaim(token, Claims::getSubject);
     }
+    
+    /**
+     * Extrae el rol del usuario del token
+     * @param token Token JWT
+     * @return Rol del usuario (ADMIN, BARBER, CLIENT)
+     */
+    public String extractRole(String token) {
+        return getClaim(token, claims -> {
+            Object roles = claims.get("roles");
+            if (roles != null) {
+                String rolesStr = roles.toString();
+                // Extraer el rol de la cadena que puede contener ROLE_ prefix
+                if (rolesStr.contains("ROLE_ADMIN") || rolesStr.contains("ADMIN")) {
+                    return "ADMIN";
+                } else if (rolesStr.contains("ROLE_BARBER") || rolesStr.contains("BARBER")) {
+                    return "BARBER";
+                } else if (rolesStr.contains("ROLE_CLIENT") || rolesStr.contains("CLIENT")) {
+                    return "CLIENT";
+                }
+            }
+            return null;
+        });
+    }
 
     /**
      * Valida si el token es válido para el usuario
