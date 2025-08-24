@@ -1,10 +1,10 @@
-package com.barbershop.features.user.controller;
+package com.barbershop.features.barbershop.controller;
 
 import com.barbershop.common.dto.ApiResponseDto;
-import com.barbershop.features.user.dto.UserCreateDto;
-import com.barbershop.features.user.dto.UserResponseDto;
-import com.barbershop.features.user.dto.UserUpdateDto;
-import com.barbershop.features.user.service.UserService;
+import com.barbershop.features.barbershop.dto.BarbershopCreateDto;
+import com.barbershop.features.barbershop.dto.BarbershopResponseDto;
+import com.barbershop.features.barbershop.dto.BarbershopUpdateDto;
+import com.barbershop.features.barbershop.service.BarbershopService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,45 +22,45 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v1/barbershops")
 @RequiredArgsConstructor
-@Tag(name = "Usuarios", description = "Operaciones relacionadas con usuarios")
-public class UserController {
+@Tag(name = "Barberías", description = "Operaciones relacionadas con barberías")
+public class BarbershopController {
 
-    private final UserService userService;
+    private final BarbershopService barbershopService;
 
     @Operation(
-            summary = "Crear nuevo usuario",
-            description = "Crea un nuevo usuario en el sistema.",
+            summary = "Crear nueva barbería",
+            description = "Crea una nueva barbería en el sistema.",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
-                            description = "Usuario creado exitosamente",
+                            description = "Barbería creada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
     )
     @PostMapping
-    public ResponseEntity<ApiResponseDto<UserResponseDto>> createUser(
-            @Valid @RequestBody UserCreateDto createDto,
+    public ResponseEntity<ApiResponseDto<BarbershopResponseDto>> createBarbershop(
+            @Valid @RequestBody BarbershopCreateDto createDto,
             HttpServletRequest request) {
 
-        UserResponseDto user = userService.createUser(createDto);
+        BarbershopResponseDto barbershop = barbershopService.createBarbershop(createDto);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponseDto.<UserResponseDto>builder()
+                ApiResponseDto.<BarbershopResponseDto>builder()
                         .status(HttpStatus.CREATED.value())
-                        .message("Usuario creado exitosamente")
+                        .message("Barbería creada exitosamente")
                         .timestamp(LocalDateTime.now())
                         .path(request.getRequestURI())
-                        .data(user)
+                        .data(barbershop)
                         .build()
         );
     }
 
     @Operation(
-            summary = "Obtener usuarios",
-            description = "Devuelve una lista paginada de usuarios o un usuario específico por ID.",
+            summary = "Obtener barberías",
+            description = "Devuelve una lista paginada de barberías o una barbería específica por ID.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -69,103 +69,103 @@ public class UserController {
                     ),
                     @ApiResponse(
                             responseCode = "404",
-                            description = "Usuario no encontrado (cuando se especifica ID)"
+                            description = "Barbería no encontrada (cuando se especifica ID)"
                     )
             }
     )
     @GetMapping
-    public ResponseEntity<ApiResponseDto<?>> getUsers(
+    public ResponseEntity<ApiResponseDto<?>> getBarbershops(
             @RequestParam(required = false) String id,
             Pageable pageable,
             HttpServletRequest request) {
 
         if (id != null && !id.isEmpty()) {
-            // Obtener usuario específico por ID
-            UserResponseDto user = userService.getUserById(id);
+            // Obtener barbería específica por ID
+            BarbershopResponseDto barbershop = barbershopService.getBarbershopById(id);
             return ResponseEntity.ok(
-                    ApiResponseDto.<UserResponseDto>builder()
+                    ApiResponseDto.<BarbershopResponseDto>builder()
                             .status(HttpStatus.OK.value())
-                            .message("Usuario obtenido exitosamente")
+                            .message("Barbería obtenida exitosamente")
                             .timestamp(LocalDateTime.now())
                             .path(request.getRequestURI())
-                            .data(user)
+                            .data(barbershop)
                             .build()
             );
         } else {
-            // Obtener todos los usuarios paginados
-            Page<UserResponseDto> users = userService.getAllUsers(pageable);
+            // Obtener todas las barberías paginadas
+            Page<BarbershopResponseDto> barbershops = barbershopService.getAllBarbershops(pageable);
             return ResponseEntity.ok(
-                    ApiResponseDto.<Page<UserResponseDto>>builder()
+                    ApiResponseDto.<Page<BarbershopResponseDto>>builder()
                             .status(HttpStatus.OK.value())
-                            .message("Usuarios obtenidos exitosamente")
+                            .message("Barberías obtenidas exitosamente")
                             .timestamp(LocalDateTime.now())
                             .path(request.getRequestURI())
-                            .data(users)
+                            .data(barbershops)
                             .build()
             );
         }
     }
 
     @Operation(
-            summary = "Actualizar usuario",
-            description = "Actualiza los datos de un usuario existente.",
+            summary = "Actualizar barbería",
+            description = "Actualiza los datos de una barbería existente.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Usuario actualizado exitosamente",
+                            description = "Barbería actualizada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
                     @ApiResponse(
                             responseCode = "404",
-                            description = "Usuario no encontrado"
+                            description = "Barbería no encontrada"
                     )
             }
     )
     @PutMapping
-    public ResponseEntity<ApiResponseDto<UserResponseDto>> updateUser(
+    public ResponseEntity<ApiResponseDto<BarbershopResponseDto>> updateBarbershop(
             @RequestParam String id,
-            @Valid @RequestBody UserUpdateDto updateDto,
+            @Valid @RequestBody BarbershopUpdateDto updateDto,
             HttpServletRequest request) {
 
-        UserResponseDto user = userService.updateUser(id, updateDto);
+        BarbershopResponseDto barbershop = barbershopService.updateBarbershop(id, updateDto);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<UserResponseDto>builder()
+                ApiResponseDto.<BarbershopResponseDto>builder()
                         .status(HttpStatus.OK.value())
-                        .message("Usuario actualizado exitosamente")
+                        .message("Barbería actualizada exitosamente")
                         .timestamp(LocalDateTime.now())
                         .path(request.getRequestURI())
-                        .data(user)
+                        .data(barbershop)
                         .build()
         );
     }
 
     @Operation(
-            summary = "Eliminar usuario (soft delete)",
-            description = "Marca un usuario como eliminado sin borrarlo físicamente de la base de datos.",
+            summary = "Eliminar barbería (soft delete)",
+            description = "Marca una barbería como eliminada sin borrarla físicamente de la base de datos.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Usuario eliminado exitosamente",
+                            description = "Barbería eliminada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
                     @ApiResponse(
                             responseCode = "404",
-                            description = "Usuario no encontrado"
+                            description = "Barbería no encontrada"
                     )
             }
     )
     @DeleteMapping
-    public ResponseEntity<ApiResponseDto<Void>> deleteUser(
+    public ResponseEntity<ApiResponseDto<Void>> deleteBarbershop(
             @RequestParam String id,
             HttpServletRequest request) {
 
-        userService.deleteUser(id);
+        barbershopService.deleteBarbershop(id);
 
         return ResponseEntity.ok(
                 ApiResponseDto.<Void>builder()
                         .status(HttpStatus.OK.value())
-                        .message("Usuario eliminado exitosamente (soft delete)")
+                        .message("Barbería eliminada exitosamente (soft delete)")
                         .timestamp(LocalDateTime.now())
                         .path(request.getRequestURI())
                         .build()
@@ -173,71 +173,70 @@ public class UserController {
     }
 
     @Operation(
-            summary = "Restaurar usuario eliminado",
-            description = "Restaura un usuario que fue eliminado previamente.",
+            summary = "Restaurar barbería eliminada",
+            description = "Restaura una barbería que fue eliminada previamente.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Usuario restaurado exitosamente",
+                            description = "Barbería restaurada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
                     @ApiResponse(
                             responseCode = "404",
-                            description = "Usuario no encontrado"
+                            description = "Barbería no encontrada"
                     ),
                     @ApiResponse(
                             responseCode = "400",
-                            description = "El usuario no está eliminado"
+                            description = "La barbería no está eliminada"
                     )
             }
     )
     @PostMapping("/restore")
-    public ResponseEntity<ApiResponseDto<UserResponseDto>> restoreUser(
+    public ResponseEntity<ApiResponseDto<BarbershopResponseDto>> restoreBarbershop(
             @RequestParam String id,
             HttpServletRequest request) {
 
-        UserResponseDto user = userService.restoreUser(id);
+        BarbershopResponseDto barbershop = barbershopService.restoreBarbershop(id);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<UserResponseDto>builder()
+                ApiResponseDto.<BarbershopResponseDto>builder()
                         .status(HttpStatus.OK.value())
-                        .message("Usuario restaurado exitosamente")
+                        .message("Barbería restaurada exitosamente")
                         .timestamp(LocalDateTime.now())
                         .path(request.getRequestURI())
-                        .data(user)
+                        .data(barbershop)
                         .build()
         );
     }
 
     @Operation(
-            summary = "Obtener usuarios eliminados",
-            description = "Devuelve una lista paginada de usuarios eliminados.",
+            summary = "Obtener barberías eliminadas",
+            description = "Devuelve una lista paginada de barberías eliminadas.",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Usuarios eliminados obtenidos exitosamente",
+                            description = "Barberías eliminadas obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
     )
     @GetMapping("/deleted")
-    public ResponseEntity<ApiResponseDto<Page<UserResponseDto>>> getDeletedUsers(
+    public ResponseEntity<ApiResponseDto<Page<BarbershopResponseDto>>> getDeletedBarbershops(
             Pageable pageable,
             HttpServletRequest request) {
 
-        Page<UserResponseDto> deletedUsers = userService.getDeletedUsers(pageable);
+        Page<BarbershopResponseDto> deletedBarbershops = barbershopService.getDeletedBarbershops(pageable);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<Page<UserResponseDto>>builder()
+                ApiResponseDto.<Page<BarbershopResponseDto>>builder()
                         .status(HttpStatus.OK.value())
-                        .message("Usuarios eliminados obtenidos exitosamente")
+                        .message("Barberías eliminadas obtenidas exitosamente")
                         .timestamp(LocalDateTime.now())
                         .path(request.getRequestURI())
-                        .data(deletedUsers)
+                        .data(deletedBarbershops)
                         .build()
         );
     }
-
 
 
 }

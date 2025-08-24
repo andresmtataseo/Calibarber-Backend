@@ -32,6 +32,7 @@ El proyecto sigue una arquitectura modular basada en características (feature-b
 ### Características Implementadas
 - ✅ **Autenticación JWT**: Registro, inicio de sesión y cambio de contraseña
 - ✅ **Gestión de Usuarios**: Modelo de usuario con roles (Cliente, Barbero, Administrador)
+- ✅ **Sistema de Soft Delete**: Eliminación lógica de registros manteniendo integridad de datos
 - ✅ **Manejo Global de Excepciones**: Centralizado en GlobalExceptionHandler
 - ✅ **Validación de Datos**: Validaciones personalizadas y estándar
 - ✅ **Documentación API**: Swagger/OpenAPI completamente configurado
@@ -92,6 +93,34 @@ http://localhost:8080/swagger-ui.html
 
 ### Usuarios (/user)
 - ⚠️ `GET /user/findAll`: Obtener todos los usuarios (implementación básica)
+
+## Sistema de Soft Delete
+
+El sistema implementa **eliminación lógica (soft delete)** para mantener la integridad de los datos y permitir la recuperación de registros eliminados. Esta funcionalidad está disponible para las siguientes entidades:
+
+### Entidades con Soft Delete
+- **Usuarios**: Marcados como eliminados sin perder el historial
+- **Barberías**: Preservación de datos para reportes históricos
+
+### Características del Soft Delete
+- **Campos de Control**: `isDeleted` (boolean) y `deletedAt` (timestamp)
+- **Filtrado Automático**: Las consultas excluyen automáticamente registros eliminados
+- **Restauración**: Posibilidad de restaurar registros eliminados
+- **Consultas Administrativas**: Endpoints especiales para ver registros eliminados
+
+### Endpoints de Soft Delete
+- `DELETE /api/v1/users?id={userId}`: Eliminación lógica de usuario
+- `POST /api/v1/users/restore?id={userId}`: Restauración de usuario eliminado
+- `GET /api/v1/users/deleted`: Consulta de usuarios eliminados (solo administradores)
+- `DELETE /api/v1/barbershops?id={barbershopId}`: Eliminación lógica de barbería
+- `POST /api/v1/barbershops/restore?id={barbershopId}`: Restauración de barbería eliminada
+- `GET /api/v1/barbershops/deleted`: Consulta de barberías eliminadas (solo administradores)
+
+### Beneficios
+- **Integridad de Datos**: Preserva relaciones y referencias históricas
+- **Auditoría**: Mantiene un registro completo de todas las operaciones
+- **Recuperación**: Permite deshacer eliminaciones accidentales
+- **Cumplimiento**: Facilita el cumplimiento de regulaciones de retención de datos
 
 ## Funcionalidades Pendientes por Implementar
 
