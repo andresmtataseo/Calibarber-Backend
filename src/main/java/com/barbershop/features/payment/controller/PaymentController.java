@@ -43,12 +43,7 @@ public class PaymentController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pago creado exitosamente",
-                    content = @Content(schema = @Schema(implementation = PaymentResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-            @ApiResponse(responseCode = "404", description = "Cita no encontrada"),
-            @ApiResponse(responseCode = "409", description = "Ya existe un pago para esta cita")
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping
@@ -67,16 +62,13 @@ public class PaymentController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pago obtenido exitosamente",
-                    content = @Content(schema = @Schema(implementation = PaymentResponseDto.class))),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-            @ApiResponse(responseCode = "404", description = "Pago no encontrado")
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/{paymentId}")
+    @GetMapping("/by-id")
     public ResponseEntity<ApiResponseDto<PaymentResponseDto>> getPaymentById(
             @Parameter(description = "ID del pago", required = true)
-            @PathVariable String paymentId,
+            @RequestParam String paymentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -89,12 +81,11 @@ public class PaymentController {
             description = "Obtiene una lista paginada de todos los pagos. Solo disponible para administradores."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pagos obtenidos exitosamente"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado - Se requieren permisos de administrador")
+            @ApiResponse(responseCode = "200", description = "Pagos obtenidos exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<ApiResponseDto<Page<PaymentResponseDto>>> getAllPayments(
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
@@ -117,17 +108,13 @@ public class PaymentController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Estado del pago actualizado exitosamente",
-                    content = @Content(schema = @Schema(implementation = PaymentResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Transición de estado inválida"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-            @ApiResponse(responseCode = "404", description = "Pago no encontrado")
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @PatchMapping("/{paymentId}/status")
+    @PatchMapping("/status")
     public ResponseEntity<ApiResponseDto<PaymentResponseDto>> updatePaymentStatus(
             @Parameter(description = "ID del pago", required = true)
-            @PathVariable String paymentId,
+            @RequestParam String paymentId,
             @Parameter(description = "Nuevo estado del pago", required = true)
             @RequestParam PaymentStatus status,
             HttpServletRequest httpRequest) {
@@ -142,17 +129,14 @@ public class PaymentController {
             description = "Elimina un pago específico. Solo disponible para administradores y solo si el pago está en estado PENDING o FAILED."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Pago eliminado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "No se puede eliminar el pago en su estado actual"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado - Se requieren permisos de administrador"),
-            @ApiResponse(responseCode = "404", description = "Pago no encontrado")
+            @ApiResponse(responseCode = "204", description = "Pago eliminado exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @DeleteMapping("/{paymentId}")
+    @DeleteMapping("/by-id")
     public ResponseEntity<ApiResponseDto<Void>> deletePayment(
             @Parameter(description = "ID del pago", required = true)
-            @PathVariable String paymentId,
+            @RequestParam String paymentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -167,16 +151,14 @@ public class PaymentController {
             description = "Obtiene todos los pagos asociados a una cita específica. Requiere autenticación."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pagos de la cita obtenidos exitosamente"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-            @ApiResponse(responseCode = "404", description = "Cita no encontrada")
+            @ApiResponse(responseCode = "200", description = "Pagos de la cita obtenidos exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/appointment/{appointmentId}")
+    @GetMapping("/appointment")
     public ResponseEntity<ApiResponseDto<List<PaymentResponseDto>>> getPaymentsByAppointment(
             @Parameter(description = "ID de la cita", required = true)
-            @PathVariable String appointmentId,
+            @RequestParam String appointmentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -189,15 +171,14 @@ public class PaymentController {
             description = "Obtiene una lista paginada de pagos filtrados por estado. Solo disponible para administradores."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pagos por estado obtenidos exitosamente"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado - Se requieren permisos de administrador")
+            @ApiResponse(responseCode = "200", description = "Pagos por estado obtenidos exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/status/{status}")
+    @GetMapping("/status")
     public ResponseEntity<ApiResponseDto<Page<PaymentResponseDto>>> getPaymentsByStatus(
             @Parameter(description = "Estado del pago", required = true)
-            @PathVariable PaymentStatus status,
+            @RequestParam PaymentStatus status,
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
@@ -218,15 +199,14 @@ public class PaymentController {
             description = "Obtiene una lista paginada de pagos filtrados por método de pago. Solo disponible para administradores."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pagos por método obtenidos exitosamente"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado - Se requieren permisos de administrador")
+            @ApiResponse(responseCode = "200", description = "Pagos por método obtenidos exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/method/{method}")
+    @GetMapping("/method")
     public ResponseEntity<ApiResponseDto<Page<PaymentResponseDto>>> getPaymentsByMethod(
             @Parameter(description = "Método de pago", required = true)
-            @PathVariable PaymentMethod method,
+            @RequestParam PaymentMethod method,
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
@@ -247,10 +227,8 @@ public class PaymentController {
             description = "Obtiene una lista paginada de pagos realizados en un rango de fechas específico. Solo disponible para administradores."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pagos por rango de fechas obtenidos exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Rango de fechas inválido"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado - Se requieren permisos de administrador")
+            @ApiResponse(responseCode = "200", description = "Pagos por rango de fechas obtenidos exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/date-range")
@@ -279,16 +257,14 @@ public class PaymentController {
             description = "Obtiene una lista paginada de pagos de un cliente específico. Los clientes solo pueden ver sus propios pagos."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Pagos del cliente obtenidos exitosamente"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado"),
-            @ApiResponse(responseCode = "404", description = "Cliente no encontrado")
+            @ApiResponse(responseCode = "200", description = "Pagos del cliente obtenidos exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/client/{clientId}")
+    @GetMapping("/client")
     public ResponseEntity<ApiResponseDto<Page<PaymentResponseDto>>> getPaymentsByClient(
             @Parameter(description = "ID del cliente", required = true)
-            @PathVariable String clientId,
+            @RequestParam String clientId,
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
@@ -311,9 +287,8 @@ public class PaymentController {
             description = "Obtiene estadísticas generales de pagos incluyendo totales por estado y conteos. Solo disponible para administradores."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Estadísticas de pagos obtenidas exitosamente"),
-            @ApiResponse(responseCode = "401", description = "No autorizado"),
-            @ApiResponse(responseCode = "403", description = "Acceso denegado - Se requieren permisos de administrador")
+            @ApiResponse(responseCode = "200", description = "Estadísticas de pagos obtenidas exitosamente",
+                    content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))
     })
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/stats")
