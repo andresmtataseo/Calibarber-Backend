@@ -2,6 +2,7 @@ package com.barbershop.common.controller;
 
 import com.barbershop.common.dto.ApiResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,7 @@ public class HealthController {
      * @return ResponseEntity con el estado de salud del sistema
      */
     @GetMapping("/health")
+    @SecurityRequirements({})
     @Operation(
         summary = "Verificar estado de salud",
         description = "Retorna el estado actual de la aplicación y sus componentes"
