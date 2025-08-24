@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -40,6 +41,7 @@ public class BarbershopController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<ApiResponseDto<BarbershopResponseDto>> createBarbershop(
             @Valid @RequestBody BarbershopCreateDto createDto,
@@ -121,6 +123,7 @@ public class BarbershopController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping
     public ResponseEntity<ApiResponseDto<BarbershopResponseDto>> updateBarbershop(
             @RequestParam String id,
@@ -155,6 +158,7 @@ public class BarbershopController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping
     public ResponseEntity<ApiResponseDto<Void>> deleteBarbershop(
             @RequestParam String id,
@@ -191,6 +195,7 @@ public class BarbershopController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/restore")
     public ResponseEntity<ApiResponseDto<BarbershopResponseDto>> restoreBarbershop(
             @RequestParam String id,
@@ -220,6 +225,7 @@ public class BarbershopController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/deleted")
     public ResponseEntity<ApiResponseDto<Page<BarbershopResponseDto>>> getDeletedBarbershops(
             Pageable pageable,

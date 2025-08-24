@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -57,6 +58,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> createAppointment(
             @Valid @RequestBody CreateAppointmentRequestDto request,
@@ -87,6 +89,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/{appointmentId}")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> getAppointmentById(
             @Parameter(description = "ID de la cita", required = true)
@@ -114,6 +117,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAllAppointments(
             @Parameter(description = "Número de página (0-indexed)", example = "0")
@@ -155,6 +159,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/{appointmentId}")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> updateAppointment(
             @Parameter(description = "ID de la cita", required = true)
@@ -186,6 +191,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{appointmentId}")
     public ResponseEntity<ApiResponseDto<Void>> deleteAppointment(
             @Parameter(description = "ID de la cita", required = true)
@@ -215,6 +221,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/client/{clientId}")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAppointmentsByClient(
             @Parameter(description = "ID del cliente", required = true)
@@ -250,6 +257,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/barber/{barberId}")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAppointmentsByBarber(
             @Parameter(description = "ID del barbero", required = true)
@@ -285,6 +293,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/status/{status}")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAppointmentsByStatus(
             @Parameter(description = "Estado de la cita", required = true)
@@ -322,6 +331,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/client/{clientId}/upcoming")
     public ResponseEntity<ApiResponseDto<List<AppointmentResponseDto>>> getUpcomingAppointmentsByClient(
             @Parameter(description = "ID del cliente", required = true)
@@ -349,6 +359,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/barber/{barberId}/upcoming")
     public ResponseEntity<ApiResponseDto<List<AppointmentResponseDto>>> getUpcomingAppointmentsByBarber(
             @Parameter(description = "ID del barbero", required = true)
@@ -386,6 +397,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{appointmentId}/cancel")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> cancelAppointment(
             @Parameter(description = "ID de la cita", required = true)
@@ -421,6 +433,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{appointmentId}/confirm")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> confirmAppointment(
             @Parameter(description = "ID de la cita", required = true)
@@ -456,6 +469,7 @@ public class AppointmentController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{appointmentId}/complete")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> completeAppointment(
             @Parameter(description = "ID de la cita", required = true)

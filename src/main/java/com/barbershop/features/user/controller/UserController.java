@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -40,6 +41,7 @@ public class UserController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<ApiResponseDto<UserResponseDto>> createUser(
             @Valid @RequestBody UserCreateDto createDto,
@@ -73,6 +75,7 @@ public class UserController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     public ResponseEntity<ApiResponseDto<?>> getUsers(
             @RequestParam(required = false) String id,
@@ -121,6 +124,7 @@ public class UserController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping
     public ResponseEntity<ApiResponseDto<UserResponseDto>> updateUser(
             @RequestParam String id,
@@ -155,6 +159,7 @@ public class UserController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping
     public ResponseEntity<ApiResponseDto<Void>> deleteUser(
             @RequestParam String id,
@@ -191,6 +196,7 @@ public class UserController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/restore")
     public ResponseEntity<ApiResponseDto<UserResponseDto>> restoreUser(
             @RequestParam String id,
@@ -220,6 +226,7 @@ public class UserController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/deleted")
     public ResponseEntity<ApiResponseDto<Page<UserResponseDto>>> getDeletedUsers(
             Pageable pageable,

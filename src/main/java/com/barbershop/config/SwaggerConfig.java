@@ -33,12 +33,12 @@ import org.springframework.http.HttpHeaders;
                 @Server(url = "https://barbershop-backend.herokuapp.com", description = "Production server")
         },
         security = @SecurityRequirement(
-                name = "Security Token",
+                name = "bearerAuth",
                 scopes = {}
         )
 )
 @SecurityScheme(
-        name = "Security Token",
+        name = "bearerAuth",
         description = "Access token for API REST",
         paramName = HttpHeaders.AUTHORIZATION,
         in = SecuritySchemeIn.HEADER,

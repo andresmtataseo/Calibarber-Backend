@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -58,6 +59,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     public ResponseEntity<ApiResponseDto<BarberResponseDto>> createBarber(
             @Valid @RequestBody CreateBarberRequestDto createDto,
@@ -91,6 +93,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     public ResponseEntity<ApiResponseDto<?>> getBarbers(
             @Parameter(description = "ID del barbero específico") @RequestParam(required = false) String id,
@@ -169,6 +172,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping
     public ResponseEntity<ApiResponseDto<BarberResponseDto>> updateBarber(
             @Parameter(description = "ID del barbero a actualizar") @RequestParam String id,
@@ -207,6 +211,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping
     public ResponseEntity<ApiResponseDto<Void>> deleteBarber(
             @Parameter(description = "ID del barbero a eliminar") @RequestParam String id,
@@ -243,6 +248,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/restore")
     public ResponseEntity<ApiResponseDto<BarberResponseDto>> restoreBarber(
             @Parameter(description = "ID del barbero a restaurar") @RequestParam String id,
@@ -272,6 +278,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/deleted")
     public ResponseEntity<ApiResponseDto<Page<BarberResponseDto>>> getDeletedBarbers(
             Pageable pageable,
@@ -311,6 +318,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/availability")
     public ResponseEntity<ApiResponseDto<BarberAvailabilityResponseDto>> createAvailability(
             @Valid @RequestBody CreateBarberAvailabilityRequestDto createDto,
@@ -344,6 +352,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/{barberId}/availability")
     public ResponseEntity<ApiResponseDto<List<BarberAvailabilityResponseDto>>> getBarberAvailability(
             @Parameter(description = "ID del barbero") @PathVariable String barberId,
@@ -387,6 +396,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/{barberId}/availability/paginated")
     public ResponseEntity<ApiResponseDto<Page<BarberAvailabilityResponseDto>>> getBarberAvailabilityPaginated(
             @Parameter(description = "ID del barbero") @PathVariable String barberId,
@@ -426,6 +436,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/availability/{availabilityId}")
     public ResponseEntity<ApiResponseDto<BarberAvailabilityResponseDto>> updateAvailability(
             @Parameter(description = "ID de la disponibilidad") @PathVariable String availabilityId,
@@ -461,6 +472,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/availability/{availabilityId}")
     public ResponseEntity<ApiResponseDto<Void>> deleteAvailability(
             @Parameter(description = "ID de la disponibilidad") @PathVariable String availabilityId,
@@ -493,6 +505,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/availability/{availabilityId}/toggle")
     public ResponseEntity<ApiResponseDto<BarberAvailabilityResponseDto>> toggleAvailability(
             @Parameter(description = "ID de la disponibilidad") @PathVariable String availabilityId,
@@ -524,6 +537,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/available")
     public ResponseEntity<ApiResponseDto<List<BarberAvailabilityResponseDto>>> findAvailableBarbers(
             @Parameter(description = "ID de la barbería") @RequestParam String barbershopId,
@@ -556,6 +570,7 @@ public class BarberController {
                     )
             }
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/availability/day/{dayOfWeek}")
     public ResponseEntity<ApiResponseDto<List<BarberAvailabilityResponseDto>>> getAvailabilitiesByDay(
             @Parameter(description = "Día de la semana") @PathVariable DayOfWeek dayOfWeek,

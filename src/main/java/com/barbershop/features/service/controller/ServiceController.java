@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class ServiceController {
 
     @PostMapping
     @Operation(summary = "Crear un nuevo servicio", description = "Crea un nuevo servicio en una barbería")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Servicio creado exitosamente",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
@@ -180,6 +182,7 @@ public class ServiceController {
 
     @PutMapping("/{serviceId}")
     @Operation(summary = "Actualizar servicio", description = "Actualiza un servicio existente")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Servicio actualizado exitosamente",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
@@ -205,6 +208,7 @@ public class ServiceController {
 
     @DeleteMapping("/{serviceId}")
     @Operation(summary = "Eliminar servicio", description = "Elimina un servicio (soft delete)")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Servicio eliminado exitosamente",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
@@ -225,6 +229,7 @@ public class ServiceController {
 
     @PostMapping("/{serviceId}/restore")
     @Operation(summary = "Restaurar servicio", description = "Restaura un servicio previamente eliminado")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Servicio restaurado exitosamente",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
@@ -247,6 +252,7 @@ public class ServiceController {
 
     @GetMapping("/deleted")
     @Operation(summary = "Obtener servicios eliminados", description = "Obtiene una lista paginada de servicios eliminados (solo administradores)")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Servicios eliminados obtenidos exitosamente",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
@@ -271,6 +277,7 @@ public class ServiceController {
 
     @GetMapping("/deleted/barbershop/{barbershopId}")
     @Operation(summary = "Obtener servicios eliminados por barbería", description = "Obtiene una lista paginada de servicios eliminados de una barbería específica")
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Servicios eliminados obtenidos exitosamente",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class))),
