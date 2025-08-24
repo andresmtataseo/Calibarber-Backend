@@ -37,9 +37,24 @@ public class PaymentController {
 
     // ========== ENDPOINTS CRUD BÁSICOS ==========
 
+    /**
+     * Crea un nuevo pago para una cita específica.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Puede crear pagos para cualquier cita
+     * - BARBER: Solo puede crear pagos para sus propias citas
+     * - CLIENT: Solo puede crear pagos para sus propias citas
+     * 
+     * @param request Datos del pago a crear
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos del pago creado
+     */
     @Operation(
             summary = "Crear un nuevo pago",
-            description = "Crea un nuevo pago para una cita específica. Requiere autenticación."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede crear pagos para cualquier cita<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede crear pagos para sus propias citas<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede crear pagos para sus propias citas"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Pago creado exitosamente",
@@ -56,9 +71,24 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Obtiene los detalles de un pago específico por su ID.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Puede ver cualquier pago del sistema
+     * - BARBER: Solo puede ver pagos de sus propias citas
+     * - CLIENT: Solo puede ver pagos de sus propias citas
+     * 
+     * @param paymentId ID del pago a consultar
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos del pago solicitado
+     */
     @Operation(
             summary = "Obtener pago por ID",
-            description = "Obtiene los detalles de un pago específico por su ID. Requiere autenticación."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver cualquier pago del sistema<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede ver pagos de sus propias citas<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede ver pagos de sus propias citas"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pago obtenido exitosamente",
@@ -76,9 +106,23 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Obtiene una lista paginada de todos los pagos del sistema.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo a todos los pagos
+     * 
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo para ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la lista paginada de pagos
+     */
     @Operation(
             summary = "Obtener todos los pagos",
-            description = "Obtiene una lista paginada de todos los pagos. Solo disponible para administradores."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo a todos los pagos del sistema"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pagos obtenidos exitosamente",
@@ -102,9 +146,23 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Actualiza el estado de un pago específico.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Puede actualizar el estado de cualquier pago
+     * - BARBER: Solo puede actualizar pagos de sus propias citas
+     * 
+     * @param paymentId ID del pago a actualizar
+     * @param status Nuevo estado del pago
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos del pago actualizado
+     */
     @Operation(
             summary = "Actualizar estado de pago",
-            description = "Actualiza el estado de un pago específico. Solo disponible para administradores y barberos."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede actualizar el estado de cualquier pago<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede actualizar pagos de sus propias citas"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Estado del pago actualizado exitosamente",
@@ -124,9 +182,20 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Elimina un pago específico del sistema.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Puede eliminar pagos (solo si están en estado PENDING o FAILED)
+     * 
+     * @param paymentId ID del pago a eliminar
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta de confirmación de eliminación
+     */
     @Operation(
             summary = "Eliminar pago",
-            description = "Elimina un pago específico. Solo disponible para administradores y solo si el pago está en estado PENDING o FAILED."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede eliminar pagos (solo si están en estado PENDING o FAILED)"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Pago eliminado exitosamente",
@@ -146,9 +215,24 @@ public class PaymentController {
 
     // ========== ENDPOINTS DE CONSULTAS ESPECÍFICAS ==========
 
+    /**
+     * Obtiene todos los pagos asociados a una cita específica.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Puede ver pagos de cualquier cita
+     * - BARBER: Solo puede ver pagos de sus propias citas
+     * - CLIENT: Solo puede ver pagos de sus propias citas
+     * 
+     * @param appointmentId ID de la cita
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la lista de pagos de la cita
+     */
     @Operation(
             summary = "Obtener pagos por cita",
-            description = "Obtiene todos los pagos asociados a una cita específica. Requiere autenticación."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver pagos de cualquier cita<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede ver pagos de sus propias citas<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede ver pagos de sus propias citas"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pagos de la cita obtenidos exitosamente",
@@ -166,9 +250,24 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Obtiene una lista paginada de pagos filtrados por estado.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo a pagos por cualquier estado
+     * 
+     * @param status Estado del pago a filtrar
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo para ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la lista paginada de pagos filtrados por estado
+     */
     @Operation(
             summary = "Obtener pagos por estado",
-            description = "Obtiene una lista paginada de pagos filtrados por estado. Solo disponible para administradores."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo a pagos por cualquier estado"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pagos por estado obtenidos exitosamente",
@@ -194,9 +293,24 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Obtiene una lista paginada de pagos filtrados por método de pago.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo a pagos por cualquier método de pago
+     * 
+     * @param method Método de pago a filtrar
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo para ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la lista paginada de pagos filtrados por método
+     */
     @Operation(
             summary = "Obtener pagos por método de pago",
-            description = "Obtiene una lista paginada de pagos filtrados por método de pago. Solo disponible para administradores."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo a pagos por cualquier método de pago"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pagos por método obtenidos exitosamente",
@@ -222,9 +336,25 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Obtiene una lista paginada de pagos realizados en un rango de fechas específico.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo a pagos en cualquier rango de fechas
+     * 
+     * @param startDate Fecha de inicio del rango
+     * @param endDate Fecha de fin del rango
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo para ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la lista paginada de pagos en el rango de fechas
+     */
     @Operation(
             summary = "Obtener pagos por rango de fechas",
-            description = "Obtiene una lista paginada de pagos realizados en un rango de fechas específico. Solo disponible para administradores."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo a pagos en cualquier rango de fechas"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pagos por rango de fechas obtenidos exitosamente",
@@ -252,9 +382,26 @@ public class PaymentController {
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
+    /**
+     * Obtiene una lista paginada de pagos de un cliente específico.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Puede ver pagos de cualquier cliente
+     * - CLIENT: Solo puede ver sus propios pagos
+     * 
+     * @param clientId ID del cliente
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo para ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la lista paginada de pagos del cliente
+     */
     @Operation(
             summary = "Obtener pagos por cliente",
-            description = "Obtiene una lista paginada de pagos de un cliente específico. Los clientes solo pueden ver sus propios pagos."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver pagos de cualquier cliente<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede ver sus propios pagos"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Pagos del cliente obtenidos exitosamente",
@@ -282,9 +429,19 @@ public class PaymentController {
 
     // ========== ENDPOINTS DE ESTADÍSTICAS ==========
 
+    /**
+     * Obtiene estadísticas generales de pagos del sistema.
+     * 
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo a todas las estadísticas de pagos
+     * 
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con las estadísticas de pagos (totales por estado, conteos, etc.)
+     */
     @Operation(
             summary = "Obtener estadísticas de pagos",
-            description = "Obtiene estadísticas generales de pagos incluyendo totales por estado y conteos. Solo disponible para administradores."
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo a todas las estadísticas de pagos"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Estadísticas de pagos obtenidas exitosamente",

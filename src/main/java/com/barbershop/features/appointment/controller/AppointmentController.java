@@ -35,26 +35,29 @@ public class AppointmentController {
 
     // ========== ENDPOINTS CRUD BÁSICOS ==========
 
+    /**
+     * Crea una nueva cita en el sistema de barbería
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede crear citas para cualquier cliente
+     * - BARBER: Puede crear citas para cualquier cliente
+     * - CLIENT: Solo puede crear citas para sí mismo
+     *
+     * @param request Datos de la nueva cita a crear
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos de la cita creada
+     */
     @Operation(
             summary = "Crear nueva cita",
-            description = "Crea una nueva cita en el sistema. Los clientes solo pueden crear citas para sí mismos.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede crear citas para cualquier cliente<br/>" +
+                         "• <strong>BARBER:</strong> Puede crear citas para cualquier cliente<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede crear citas para sí mismo",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
                             description = "Cita creada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Datos inválidos o barbero no disponible"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para crear esta cita"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Usuario, barbero o servicio no encontrado"
                     )
             }
     )
@@ -70,22 +73,29 @@ public class AppointmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Obtiene los detalles de una cita específica por su ID
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede ver cualquier cita del sistema
+     * - BARBER: Solo puede ver citas asignadas a él
+     * - CLIENT: Solo puede ver sus propias citas
+     *
+     * @param appointmentId ID único de la cita a consultar
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los detalles de la cita solicitada
+     */
     @Operation(
             summary = "Obtener cita por ID",
-            description = "Obtiene los detalles de una cita específica. Los usuarios solo pueden ver sus propias citas.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver cualquier cita del sistema<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede ver citas asignadas a él<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede ver sus propias citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Cita obtenida exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para ver esta cita"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Cita no encontrada"
                     )
             }
     )
@@ -102,18 +112,32 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Obtiene todas las citas del sistema con paginación y ordenamiento
+     *
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo a todas las citas del sistema
+     * - BARBER: Sin acceso a este endpoint
+     * - CLIENT: Sin acceso a este endpoint
+     *
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección del ordenamiento (asc/desc)
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta paginada con todas las citas del sistema
+     */
     @Operation(
             summary = "Obtener todas las citas",
-            description = "Obtiene todas las citas del sistema con paginación. Solo disponible para administradores.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo a todas las citas del sistema<br/>" +
+                         "• <strong>BARBER:</strong> Sin acceso a este endpoint<br/>" +
+                         "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Citas obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "Solo los administradores pueden ver todas las citas"
                     )
             }
     )
@@ -136,26 +160,30 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Actualiza los datos de una cita existente
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede actualizar cualquier cita del sistema
+     * - BARBER: Solo puede actualizar citas asignadas a él
+     * - CLIENT: Solo puede actualizar sus propias citas
+     *
+     * @param appointmentId ID único de la cita a actualizar
+     * @param request Datos actualizados de la cita
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos actualizados de la cita
+     */
     @Operation(
             summary = "Actualizar cita",
-            description = "Actualiza los datos de una cita existente. Los usuarios solo pueden modificar sus propias citas.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede actualizar cualquier cita del sistema<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede actualizar citas asignadas a él<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede actualizar sus propias citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Cita actualizada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Datos inválidos o cita no se puede modificar"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para modificar esta cita"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Cita no encontrada"
                     )
             }
     )
@@ -173,21 +201,28 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Elimina una cita del sistema de forma permanente
+     *
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo para eliminar cualquier cita
+     * - BARBER: Sin acceso a este endpoint
+     * - CLIENT: Sin acceso a este endpoint
+     *
+     * @param appointmentId ID único de la cita a eliminar
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta de confirmación de eliminación
+     */
     @Operation(
             summary = "Eliminar cita",
-            description = "Elimina una cita del sistema. Solo disponible para administradores.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo para eliminar cualquier cita<br/>" +
+                         "• <strong>BARBER:</strong> Sin acceso a este endpoint<br/>" +
+                         "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Cita eliminada exitosamente"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "Solo los administradores pueden eliminar citas"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Cita no encontrada"
                     )
             }
     )
@@ -206,18 +241,33 @@ public class AppointmentController {
 
     // ========== ENDPOINTS DE CONSULTA POR FILTROS ==========
 
+    /**
+     * Obtiene todas las citas de un cliente específico con paginación
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede ver citas de cualquier cliente
+     * - BARBER: Sin acceso a este endpoint
+     * - CLIENT: Solo puede ver sus propias citas
+     *
+     * @param clientId ID único del cliente
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección del ordenamiento (asc/desc)
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta paginada con las citas del cliente
+     */
     @Operation(
             summary = "Obtener citas por cliente",
-            description = "Obtiene todas las citas de un cliente específico. Los clientes solo pueden ver sus propias citas.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver citas de cualquier cliente<br/>" +
+                         "• <strong>BARBER:</strong> Sin acceso a este endpoint<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede ver sus propias citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Citas del cliente obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para ver las citas de este cliente"
                     )
             }
     )
@@ -242,18 +292,33 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Obtiene todas las citas de un barbero específico con paginación
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede ver citas de cualquier barbero
+     * - BARBER: Solo puede ver sus propias citas
+     * - CLIENT: Sin acceso a este endpoint
+     *
+     * @param barberId ID único del barbero
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección del ordenamiento (asc/desc)
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta paginada con las citas del barbero
+     */
     @Operation(
             summary = "Obtener citas por barbero",
-            description = "Obtiene todas las citas de un barbero específico. Los barberos solo pueden ver sus propias citas.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver citas de cualquier barbero<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede ver sus propias citas<br/>" +
+                         "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Citas del barbero obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para ver las citas de este barbero"
                     )
             }
     )
@@ -278,18 +343,33 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Obtiene todas las citas filtradas por estado específico con paginación
+     *
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo para filtrar citas por cualquier estado
+     * - BARBER: Sin acceso a este endpoint
+     * - CLIENT: Sin acceso a este endpoint
+     *
+     * @param status Estado específico de las citas a filtrar
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección del ordenamiento (asc/desc)
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta paginada con las citas filtradas por estado
+     */
     @Operation(
             summary = "Obtener citas por estado",
-            description = "Obtiene todas las citas filtradas por estado. Solo disponible para administradores.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo para filtrar citas por cualquier estado<br/>" +
+                         "• <strong>BARBER:</strong> Sin acceso a este endpoint<br/>" +
+                         "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Citas filtradas por estado obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "Solo los administradores pueden filtrar por estado"
                     )
             }
     )
@@ -316,18 +396,29 @@ public class AppointmentController {
 
     // ========== ENDPOINTS DE PRÓXIMAS CITAS ==========
 
+    /**
+     * Obtiene las próximas citas de un cliente específico
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede ver próximas citas de cualquier cliente
+     * - BARBER: Sin acceso a este endpoint
+     * - CLIENT: Solo puede ver sus propias próximas citas
+     *
+     * @param clientId ID único del cliente
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con las próximas citas del cliente
+     */
     @Operation(
             summary = "Obtener próximas citas del cliente",
-            description = "Obtiene las próximas citas de un cliente específico. Los clientes solo pueden ver sus propias citas.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver próximas citas de cualquier cliente<br/>" +
+                         "• <strong>BARBER:</strong> Sin acceso a este endpoint<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede ver sus propias próximas citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Próximas citas obtenidas exitosamente",
+                            description = "Próximas citas del cliente obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para ver las citas de este cliente"
                     )
             }
     )
@@ -344,18 +435,29 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Obtiene las próximas citas de un barbero específico
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede ver próximas citas de cualquier barbero
+     * - BARBER: Solo puede ver sus propias próximas citas
+     * - CLIENT: Sin acceso a este endpoint
+     *
+     * @param barberId ID único del barbero
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con las próximas citas del barbero
+     */
     @Operation(
             summary = "Obtener próximas citas del barbero",
-            description = "Obtiene las próximas citas de un barbero específico. Los barberos solo pueden ver sus propias citas.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver próximas citas de cualquier barbero<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede ver sus propias próximas citas<br/>" +
+                         "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Próximas citas obtenidas exitosamente",
+                            description = "Próximas citas del barbero obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para ver las citas de este barbero"
                     )
             }
     )
@@ -374,26 +476,29 @@ public class AppointmentController {
 
     // ========== ENDPOINTS DE GESTIÓN DE ESTADO ==========
 
+    /**
+     * Cancela una cita existente cambiando su estado a CANCELLED
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede cancelar cualquier cita
+     * - BARBER: Solo puede cancelar citas asignadas a él
+     * - CLIENT: Solo puede cancelar sus propias citas
+     *
+     * @param appointmentId ID único de la cita a cancelar
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la cita cancelada
+     */
     @Operation(
             summary = "Cancelar cita",
-            description = "Cancela una cita existente. Los usuarios pueden cancelar sus propias citas.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede cancelar cualquier cita<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede cancelar citas asignadas a él<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede cancelar sus propias citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Cita cancelada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "La cita no se puede cancelar"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para cancelar esta cita"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Cita no encontrada"
                     )
             }
     )
@@ -410,26 +515,29 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Confirma una cita existente cambiando su estado a CONFIRMED
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede confirmar cualquier cita
+     * - BARBER: Solo puede confirmar citas asignadas a él
+     * - CLIENT: Sin acceso a este endpoint
+     *
+     * @param appointmentId ID único de la cita a confirmar
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la cita confirmada
+     */
     @Operation(
             summary = "Confirmar cita",
-            description = "Confirma una cita programada. Solo disponible para barberos y administradores.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede confirmar cualquier cita<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede confirmar citas asignadas a él<br/>" +
+                         "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Cita confirmada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Solo se pueden confirmar citas programadas"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "Solo barberos y administradores pueden confirmar citas"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Cita no encontrada"
                     )
             }
     )
@@ -446,26 +554,29 @@ public class AppointmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Marca una cita como completada cambiando su estado a COMPLETED
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede completar cualquier cita
+     * - BARBER: Solo puede completar citas asignadas a él
+     * - CLIENT: Sin acceso a este endpoint
+     *
+     * @param appointmentId ID único de la cita a completar
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la cita completada
+     */
     @Operation(
             summary = "Completar cita",
-            description = "Marca una cita como completada. Solo disponible para barberos y administradores.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede completar cualquier cita<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede completar citas asignadas a él<br/>" +
+                         "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Cita completada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Solo se pueden completar citas confirmadas o en progreso"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "Solo barberos y administradores pueden completar citas"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Cita no encontrada"
                     )
             }
     )
