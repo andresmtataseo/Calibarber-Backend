@@ -9,6 +9,9 @@ import com.barbershop.features.service.dto.request.UpdateServiceRequestDto;
 import com.barbershop.features.service.mapper.ServiceMapper;
 import com.barbershop.features.service.repository.ServiceRepository;
 import com.barbershop.common.dto.ApiResponseDto;
+import com.barbershop.features.user.model.User;
+import com.barbershop.features.user.model.enums.RoleEnum;
+import com.barbershop.features.user.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
@@ -19,6 +22,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -32,15 +38,21 @@ public class ServiceService {
     private final ServiceRepository serviceRepository;
     private final ServiceMapper serviceMapper;
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     /**
      * Crea un nuevo servicio
+     * 
+     * @param request Datos del servicio a crear
+     * @return Respuesta con el servicio creado
+     * @throws AccessDeniedException si el usuario no tiene permisos para crear servicios
+     * @apiNote La autenticación se maneja automáticamente a través de Spring Security
      */
-    public ApiResponseDto<ServiceResponseDto> createService(CreateServiceRequestDto request, String token) {
+    public ApiResponseDto<ServiceResponseDto> createService(CreateServiceRequestDto request) {
         log.info("Creando nuevo servicio: {}", request.getName());
         
         // Validar autorización
-        validateServiceCreationAccess(token, request.getBarbershopId());
+        validateServiceCreationAccess(request.getBarbershopId());
         
         // Validar que no exista un servicio con el mismo nombre en la barbería
         if (serviceRepository.existsByBarbershopIdAndNameIgnoreCaseAndActive(request.getBarbershopId(), request.getName())) {
@@ -81,11 +93,22 @@ public class ServiceService {
     }
 
     /**
-     * Obtiene todos los servicios activos con paginación
+     * Obtiene todos los servicios con paginación y ordenamiento (solo para administradores)
+     * 
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección del ordenamiento (asc/desc)
+     * @return Respuesta con la página de servicios
+     * @throws AccessDeniedException si el usuario no es administrador
+     * @apiNote La autenticación se maneja automáticamente a través de Spring Security
      */
     @Transactional(readOnly = true)
     public ApiResponseDto<Page<ServiceResponseDto>> getAllServices(int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo servicios - Página: {}, Tamaño: {}, Ordenar por: {}, Dirección: {}", page, size, sortBy, sortDir);
+        
+        // Validar que solo los administradores puedan acceder
+        validateAdminAccess();
         
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -187,15 +210,22 @@ public class ServiceService {
 
     /**
      * Actualiza un servicio existente
+     * 
+     * @param serviceId ID del servicio a actualizar
+     * @param request Datos actualizados del servicio
+     * @return Respuesta con el servicio actualizado
+     * @throws ServiceNotFoundException si el servicio no existe
+     * @throws AccessDeniedException si el usuario no tiene permisos para modificar el servicio
+     * @apiNote La autenticación se maneja automáticamente a través de Spring Security
      */
-    public ApiResponseDto<ServiceResponseDto> updateService(String serviceId, UpdateServiceRequestDto request, String token) {
+    public ApiResponseDto<ServiceResponseDto> updateService(String serviceId, UpdateServiceRequestDto request) {
         log.info("Actualizando servicio con ID: {}", serviceId);
         
         com.barbershop.features.service.model.Service existingService = serviceRepository.findByIdAndActive(serviceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + serviceId));
         
         // Validar autorización
-        validateServiceModificationAccess(token, existingService.getBarbershopId());
+        validateServiceModificationAccess(existingService.getBarbershopId());
         
         // Validar nombre único si se está actualizando
         if (request.getName() != null && !request.getName().equals(existingService.getName())) {
@@ -221,15 +251,21 @@ public class ServiceService {
 
     /**
      * Elimina un servicio (soft delete)
+     * 
+     * @param serviceId ID del servicio a eliminar
+     * @return Respuesta confirmando la eliminación
+     * @throws ServiceNotFoundException si el servicio no existe
+     * @throws AccessDeniedException si el usuario no tiene permisos para eliminar el servicio
+     * @apiNote La autenticación se maneja automáticamente a través de Spring Security
      */
-    public ApiResponseDto<Void> deleteService(String serviceId, String token) {
+    public ApiResponseDto<Void> deleteService(String serviceId) {
         log.info("Eliminando servicio con ID: {}", serviceId);
         
         com.barbershop.features.service.model.Service service = serviceRepository.findByIdAndActive(serviceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado con ID: " + serviceId));
         
         // Validar autorización
-        validateServiceModificationAccess(token, service.getBarbershopId());
+        validateServiceModificationAccess(service.getBarbershopId());
         
         int deletedCount = serviceRepository.softDeleteById(serviceId);
         if (deletedCount == 0) {
@@ -247,7 +283,7 @@ public class ServiceService {
     /**
      * Restaura un servicio eliminado
      */
-    public ApiResponseDto<ServiceResponseDto> restoreService(String serviceId, String token) {
+    public ApiResponseDto<ServiceResponseDto> restoreService(String serviceId) {
         log.info("Restaurando servicio con ID: {}", serviceId);
         
         com.barbershop.features.service.model.Service service = serviceRepository.findById(serviceId)
@@ -258,7 +294,7 @@ public class ServiceService {
         }
         
         // Validar autorización
-        validateServiceModificationAccess(token, service.getBarbershopId());
+        validateServiceModificationAccess(service.getBarbershopId());
         
         // Validar que no exista un servicio activo con el mismo nombre
         if (serviceRepository.existsByBarbershopIdAndNameIgnoreCaseAndActive(service.getBarbershopId(), service.getName())) {
@@ -288,11 +324,11 @@ public class ServiceService {
      * Obtiene servicios eliminados con paginación
      */
     @Transactional(readOnly = true)
-    public ApiResponseDto<Page<ServiceResponseDto>> getDeletedServices(int page, int size, String sortBy, String sortDir, String token) {
+    public ApiResponseDto<Page<ServiceResponseDto>> getDeletedServices(int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo servicios eliminados - Página: {}, Tamaño: {}", page, size);
         
         // Validar que el usuario tenga permisos de administrador
-        validateAdminAccess(token);
+        validateAdminAccess();
         
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -312,11 +348,11 @@ public class ServiceService {
      * Obtiene servicios eliminados por barbería
      */
     @Transactional(readOnly = true)
-    public ApiResponseDto<Page<ServiceResponseDto>> getDeletedServicesByBarbershop(String barbershopId, int page, int size, String sortBy, String sortDir, String token) {
+    public ApiResponseDto<Page<ServiceResponseDto>> getDeletedServicesByBarbershop(String barbershopId, int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo servicios eliminados por barbería: {}", barbershopId);
         
         // Validar autorización
-        validateServiceModificationAccess(token, barbershopId);
+        validateServiceModificationAccess(barbershopId);
         
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -333,15 +369,46 @@ public class ServiceService {
     }
 
     // Métodos de validación de autorización
-    private void validateServiceCreationAccess(String token, String barbershopId) {
-        String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
+    /**
+     * Obtiene el usuario autenticado desde el SecurityContext
+     */
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
-        if ("ADMIN".equals(userRole)) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("Usuario no autenticado");
+        }
+        
+        String currentUserEmail = authentication.getName();
+        return userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+    }
+    
+    /**
+     * Verifica si el usuario autenticado es administrador
+     */
+    private boolean isCurrentUserAdmin() {
+        User currentUser = getCurrentUser();
+        return RoleEnum.ADMIN.equals(currentUser.getRole());
+    }
+    
+    /**
+     * Verifica si el usuario autenticado es barbero
+     */
+    private boolean isCurrentUserBarber() {
+        User currentUser = getCurrentUser();
+        return RoleEnum.BARBER.equals(currentUser.getRole());
+    }
+    
+    /**
+     * Valida el acceso para crear servicios
+     */
+    private void validateServiceCreationAccess(String barbershopId) {
+        if (isCurrentUserAdmin()) {
             return; // Los administradores pueden crear servicios en cualquier barbería
         }
         
-        if ("BARBER".equals(userRole)) {
+        if (isCurrentUserBarber()) {
             // Validar que el barbero esté creando servicios en su propia barbería
             // Esta validación requeriría acceso al repositorio de barberías
             return;
@@ -350,15 +417,15 @@ public class ServiceService {
         throw new AccessDeniedException("No tienes permisos para crear servicios");
     }
     
-    private void validateServiceModificationAccess(String token, String barbershopId) {
-        String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
-        
-        if ("ADMIN".equals(userRole)) {
+    /**
+     * Valida el acceso para modificar servicios
+     */
+    private void validateServiceModificationAccess(String barbershopId) {
+        if (isCurrentUserAdmin()) {
             return; // Los administradores pueden modificar cualquier servicio
         }
         
-        if ("BARBER".equals(userRole)) {
+        if (isCurrentUserBarber()) {
             // Validar que el barbero esté modificando servicios en su propia barbería
             // Esta validación requeriría acceso al repositorio de barberías
             return;
@@ -367,10 +434,11 @@ public class ServiceService {
         throw new AccessDeniedException("No tienes permisos para modificar este servicio");
     }
     
-    private void validateAdminAccess(String token) {
-        String userRole = jwtService.extractRole(token);
-        
-        if (!"ADMIN".equals(userRole)) {
+    /**
+     * Valida que el usuario autenticado sea administrador
+     */
+    private void validateAdminAccess() {
+        if (!isCurrentUserAdmin()) {
             throw new AccessDeniedException("Solo los administradores pueden acceder a esta información");
         }
     }
