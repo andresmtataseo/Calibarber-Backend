@@ -11,7 +11,9 @@ import com.barbershop.features.barbershop.repository.BarbershopRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,9 +55,12 @@ public class BarbershopService {
      * Obtiene todas las barberías con paginación
      */
     @Transactional(readOnly = true)
-    public Page<BarbershopResponseDto> getAllBarbershops(Pageable pageable) {
-        log.info("Obteniendo todas las barberías - Página: {}, Tamaño: {}", 
-                pageable.getPageNumber(), pageable.getPageSize());
+    public Page<BarbershopResponseDto> getAllBarbershops(int page, int size, String sortBy, String sortDir) {
+        log.info("Obteniendo todas las barberías - Página: {}, Tamaño: {}, Ordenar por: {}, Dirección: {}", 
+                page, size, sortBy, sortDir);
+
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Barbershop> barbershops = barbershopRepository.findAllActive(pageable);
         return barbershops.map(barbershopMapper::toResponseDto);
@@ -143,9 +148,12 @@ public class BarbershopService {
      * Obtiene todas las barberías eliminadas paginadas
      */
     @Transactional(readOnly = true)
-    public Page<BarbershopResponseDto> getDeletedBarbershops(Pageable pageable) {
-        log.info("Obteniendo barberías eliminadas paginadas: página {}, tamaño {}", 
-                pageable.getPageNumber(), pageable.getPageSize());
+    public Page<BarbershopResponseDto> getDeletedBarbershops(int page, int size, String sortBy, String sortDir) {
+        log.info("Obteniendo barberías eliminadas paginadas: página {}, tamaño {}, Ordenar por: {}, Dirección: {}", 
+                page, size, sortBy, sortDir);
+
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Barbershop> deletedBarbershops = barbershopRepository.findAllDeleted(pageable);
         return deletedBarbershops.map(barbershopMapper::toResponseDto);
