@@ -12,7 +12,9 @@ import com.barbershop.features.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -76,6 +78,24 @@ public class UserService {
         
         Page<User> users = userRepository.findAllActive(pageable);
         return users.map(userMapper::toResponseDto);
+    }
+
+    /**
+     * Obtiene todos los usuarios paginados con parámetros individuales
+     */
+    @Transactional(readOnly = true)
+    public Page<UserResponseDto> getAllUsers(int page, int size, String sortBy, String sortDir) {
+        log.info("Obteniendo usuarios paginados: página {}, tamaño {}, ordenado por {} {}", 
+                page, size, sortBy, sortDir);
+        
+        // Crear el objeto Sort
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        
+        // Crear el objeto Pageable
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        // Llamar al método existente
+        return getAllUsers(pageable);
     }
 
     /**
@@ -190,6 +210,24 @@ public class UserService {
         
         Page<User> deletedUsers = userRepository.findAllDeleted(pageable);
         return deletedUsers.map(userMapper::toResponseDto);
+    }
+
+    /**
+     * Obtiene usuarios eliminados paginados con parámetros individuales
+     */
+    @Transactional(readOnly = true)
+    public Page<UserResponseDto> getDeletedUsers(int page, int size, String sortBy, String sortDir) {
+        log.info("Obteniendo usuarios eliminados paginados: página {}, tamaño {}, ordenado por {} {}", 
+                page, size, sortBy, sortDir);
+        
+        // Crear el objeto Sort
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        
+        // Crear el objeto Pageable
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        // Llamar al método existente
+        return getDeletedUsers(pageable);
     }
 
     /**

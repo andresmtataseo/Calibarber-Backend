@@ -14,8 +14,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,9 +30,24 @@ public class UserController {
 
     private final UserService userService;
 
+    /**
+     * Crea un nuevo usuario en el sistema con los datos proporcionados.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede crear cualquier usuario con cualquier rol
+     * - BARBER: No tiene permisos para crear usuarios
+     * - CLIENT: No tiene permisos para crear usuarios
+     *
+     * @param createDto Datos del usuario a crear
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con los datos del usuario creado
+     */
     @Operation(
             summary = "Crear nuevo usuario",
-            description = "Crea un nuevo usuario en el sistema.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede crear cualquier usuario con cualquier rol<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para crear usuarios<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para crear usuarios",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -60,18 +75,33 @@ public class UserController {
         );
     }
 
+    /**
+     * Obtiene una lista paginada de usuarios o un usuario específico por ID.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede obtener cualquier usuario o lista completa de usuarios
+     * - BARBER: Solo puede obtener su propia información de usuario
+     * - CLIENT: Solo puede obtener su propia información de usuario
+     *
+     * @param id ID del usuario específico (opcional)
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección del ordenamiento (asc/desc)
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con los datos del usuario o lista de usuarios
+     */
     @Operation(
             summary = "Obtener usuarios",
-            description = "Devuelve una lista paginada de usuarios o un usuario específico por ID.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener cualquier usuario o lista completa de usuarios<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede obtener su propia información de usuario<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede obtener su propia información de usuario",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Operación exitosa",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Usuario no encontrado (cuando se especifica ID)"
                     )
             }
     )
@@ -79,7 +109,14 @@ public class UserController {
     @GetMapping
     public ResponseEntity<ApiResponseDto<?>> getUsers(
             @RequestParam(required = false) String id,
-            Pageable pageable,
+            @Parameter(description = "Número de página (0-indexed)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página", example = "10")
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Campo por el cual ordenar", example = "firstName")
+            @RequestParam(defaultValue = "firstName") String sortBy,
+            @Parameter(description = "Dirección del ordenamiento (asc/desc)", example = "asc")
+            @RequestParam(defaultValue = "asc") String sortDir,
             HttpServletRequest request) {
 
         if (id != null && !id.isEmpty()) {
@@ -96,7 +133,7 @@ public class UserController {
             );
         } else {
             // Obtener todos los usuarios paginados
-            Page<UserResponseDto> users = userService.getAllUsers(pageable);
+            Page<UserResponseDto> users = userService.getAllUsers(page, size, sortBy, sortDir);
             return ResponseEntity.ok(
                     ApiResponseDto.<Page<UserResponseDto>>builder()
                             .status(HttpStatus.OK.value())
@@ -109,18 +146,30 @@ public class UserController {
         }
     }
 
+    /**
+     * Actualiza los datos de un usuario existente en el sistema.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede actualizar cualquier usuario
+     * - BARBER: Solo puede actualizar su propia información de usuario
+     * - CLIENT: Solo puede actualizar su propia información de usuario
+     *
+     * @param id ID del usuario a actualizar
+     * @param updateDto Datos actualizados del usuario
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con los datos del usuario actualizado
+     */
     @Operation(
             summary = "Actualizar usuario",
-            description = "Actualiza los datos de un usuario existente.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede actualizar cualquier usuario<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede actualizar su propia información de usuario<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede actualizar su propia información de usuario",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Usuario actualizado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Usuario no encontrado"
                     )
             }
     )
@@ -144,18 +193,29 @@ public class UserController {
         );
     }
 
+    /**
+     * Marca un usuario como eliminado sin borrarlo físicamente de la base de datos.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede eliminar cualquier usuario del sistema
+     * - BARBER: No tiene permisos para eliminar usuarios
+     * - CLIENT: No tiene permisos para eliminar usuarios
+     *
+     * @param id ID del usuario a eliminar
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con confirmación de eliminación
+     */
     @Operation(
             summary = "Eliminar usuario (soft delete)",
-            description = "Marca un usuario como eliminado sin borrarlo físicamente de la base de datos.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede eliminar cualquier usuario del sistema<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para eliminar usuarios<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para eliminar usuarios",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Usuario eliminado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Usuario no encontrado"
                     )
             }
     )
@@ -177,22 +237,29 @@ public class UserController {
         );
     }
 
+    /**
+     * Restaura un usuario que fue eliminado previamente mediante soft delete.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede restaurar cualquier usuario eliminado del sistema
+     * - BARBER: No tiene permisos para restaurar usuarios
+     * - CLIENT: No tiene permisos para restaurar usuarios
+     *
+     * @param id ID del usuario a restaurar
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con los datos del usuario restaurado
+     */
     @Operation(
             summary = "Restaurar usuario eliminado",
-            description = "Restaura un usuario que fue eliminado previamente.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede restaurar cualquier usuario eliminado del sistema<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para restaurar usuarios<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para restaurar usuarios",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Usuario restaurado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Usuario no encontrado"
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "El usuario no está eliminado"
                     )
             }
     )
@@ -215,9 +282,27 @@ public class UserController {
         );
     }
 
+    /**
+     * Obtiene una lista paginada de usuarios que han sido eliminados mediante soft delete.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede obtener la lista completa de usuarios eliminados
+     * - BARBER: No tiene permisos para ver usuarios eliminados
+     * - CLIENT: No tiene permisos para ver usuarios eliminados
+     *
+     * @param page Número de página (0-indexed)
+     * @param size Tamaño de página
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección del ordenamiento (asc/desc)
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con la lista paginada de usuarios eliminados
+     */
     @Operation(
             summary = "Obtener usuarios eliminados",
-            description = "Devuelve una lista paginada de usuarios eliminados.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener la lista completa de usuarios eliminados<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para ver usuarios eliminados<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para ver usuarios eliminados",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -229,10 +314,17 @@ public class UserController {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/deleted")
     public ResponseEntity<ApiResponseDto<Page<UserResponseDto>>> getDeletedUsers(
-            Pageable pageable,
+            @Parameter(description = "Número de página (0-indexed)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página", example = "10")
+            @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Campo por el cual ordenar", example = "firstName")
+            @RequestParam(defaultValue = "firstName") String sortBy,
+            @Parameter(description = "Dirección del ordenamiento (asc/desc)", example = "asc")
+            @RequestParam(defaultValue = "asc") String sortDir,
             HttpServletRequest request) {
 
-        Page<UserResponseDto> deletedUsers = userService.getDeletedUsers(pageable);
+        Page<UserResponseDto> deletedUsers = userService.getDeletedUsers(page, size, sortBy, sortDir);
 
         return ResponseEntity.ok(
                 ApiResponseDto.<Page<UserResponseDto>>builder()
