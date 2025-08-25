@@ -39,23 +39,28 @@ public class AuthController {
     private final AuthService authService;
     private final TokenCleanupService tokenCleanupService;
 
+    /**
+     * Autentica a un usuario con su email y contraseña y devuelve un token JWT con información esencial de autenticación.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede iniciar sesión con credenciales de administrador
+     * - BARBER: Puede iniciar sesión con credenciales de barbero
+     * - CLIENT: Puede iniciar sesión con credenciales de cliente
+     *
+     * @param signInRequestDto Datos de inicio de sesión (email y contraseña)
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta con token JWT y información del usuario autenticado
+     */
     @Operation(
             summary = "Inicia sesión de un usuario",
-            description = "Autentica a un usuario con su email y contraseña y devuelve un token JWT con información esencial de autenticación. **No requiere autenticación previa.**",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede iniciar sesión con credenciales de administrador<br/>" +
+                         "• <strong>BARBER:</strong> Puede iniciar sesión con credenciales de barbero<br/>" +
+                         "• <strong>CLIENT:</strong> Puede iniciar sesión con credenciales de cliente",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Inicio de sesión exitoso",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "401",
-                            description = "Credenciales inválidas",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Datos de entrada inválidos",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
@@ -75,23 +80,28 @@ public class AuthController {
         );
     }
 
+    /**
+     * Crea una nueva cuenta de usuario con el rol por defecto (CLIENTE) y devuelve un token JWT con información esencial de autenticación.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede registrar nuevos usuarios (acceso público)
+     * - BARBER: Puede registrar nuevos usuarios (acceso público)
+     * - CLIENT: Puede registrar nuevos usuarios (acceso público)
+     *
+     * @param signUpRequestDto Datos de registro del nuevo usuario
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta con token JWT y información del usuario registrado
+     */
     @Operation(
             summary = "Registra un nuevo usuario",
-            description = "Crea una nueva cuenta de usuario con el rol por defecto (CLIENTE) y devuelve un token JWT con información esencial de autenticación. **No requiere autenticación previa.**",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede registrar nuevos usuarios (acceso público)<br/>" +
+                         "• <strong>BARBER:</strong> Puede registrar nuevos usuarios (acceso público)<br/>" +
+                         "• <strong>CLIENT:</strong> Puede registrar nuevos usuarios (acceso público)",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
                             description = "Usuario registrado exitosamente",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "409",
-                            description = "El email ya está registrado",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Datos de entrada inválidos",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
@@ -112,24 +122,30 @@ public class AuthController {
     }
 
 
+    /**
+     * Permite al usuario autenticado cambiar su contraseña proporcionando la contraseña actual y la nueva contraseña.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Solo puede cambiar su propia contraseña
+     * - BARBER: Solo puede cambiar su propia contraseña
+     * - CLIENT: Solo puede cambiar su propia contraseña
+     *
+     * @param changePasswordRequestDto Datos para cambio de contraseña (contraseña actual, nueva y confirmación)
+     * @param authentication Información de autenticación del usuario
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta confirmando el cambio de contraseña
+     */
     @Operation(
             summary = "Cambia la contraseña del usuario autenticado",
-            description = "Permite al usuario autenticado cambiar su contraseña proporcionando la contraseña actual y la nueva contraseña.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Solo puede cambiar su propia contraseña<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede cambiar su propia contraseña<br/>" +
+                         "• <strong>CLIENT:</strong> Solo puede cambiar su propia contraseña",
             security = @SecurityRequirement(name = "bearerAuth"),
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Contraseña cambiada exitosamente",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Datos de entrada inválidos o contraseñas no coinciden",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "401",
-                            description = "Token inválido, expirado o contraseña actual incorrecta",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
@@ -151,18 +167,28 @@ public class AuthController {
         );
     }
 
+    /**
+     * Verifica si un email específico ya está registrado en el sistema.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede verificar disponibilidad de cualquier email (acceso público)
+     * - BARBER: Puede verificar disponibilidad de cualquier email (acceso público)
+     * - CLIENT: Puede verificar disponibilidad de cualquier email (acceso público)
+     *
+     * @param email Email a verificar su disponibilidad
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta indicando si el email está disponible o no
+     */
     @Operation(
             summary = "Verifica si un email está disponible",
-            description = "Verifica si un email específico ya está registrado en el sistema. **No requiere autenticación.**",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede verificar disponibilidad de cualquier email (acceso público)<br/>" +
+                         "• <strong>BARBER:</strong> Puede verificar disponibilidad de cualquier email (acceso público)<br/>" +
+                         "• <strong>CLIENT:</strong> Puede verificar disponibilidad de cualquier email (acceso público)",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Verificación completada",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Email inválido",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
@@ -185,23 +211,28 @@ public class AuthController {
         );
     }
 
+    /**
+     * Envía un email con un token de recuperación de contraseña al usuario.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede solicitar recuperación de contraseña (acceso público)
+     * - BARBER: Puede solicitar recuperación de contraseña (acceso público)
+     * - CLIENT: Puede solicitar recuperación de contraseña (acceso público)
+     *
+     * @param forgotPasswordRequestDto Datos con el email del usuario para recuperación
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta confirmando el envío del email de recuperación
+     */
     @Operation(
-            summary = "Solicita restablecimiento de contraseña",
-            description = "Inicia el proceso de restablecimiento de contraseña enviando un token de restablecimiento al email del usuario. **No requiere autenticación previa.**",
+            summary = "Solicita recuperación de contraseña",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede solicitar recuperación de contraseña (acceso público)<br/>" +
+                         "• <strong>BARBER:</strong> Puede solicitar recuperación de contraseña (acceso público)<br/>" +
+                         "• <strong>CLIENT:</strong> Puede solicitar recuperación de contraseña (acceso público)",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Solicitud procesada exitosamente",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Email no encontrado",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Email inválido",
+                            description = "Email de recuperación enviado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
@@ -221,50 +252,70 @@ public class AuthController {
         );
     }
 
+    /**
+     * Restablece la contraseña del usuario utilizando el token de restablecimiento enviado por email.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede restablecer contraseña con token válido (acceso público)
+     * - BARBER: Puede restablecer contraseña con token válido (acceso público)
+     * - CLIENT: Puede restablecer contraseña con token válido (acceso público)
+     *
+     * @param resetPasswordRequestDto Datos con token de restablecimiento y nueva contraseña
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta confirmando el restablecimiento de contraseña
+     */
     @Operation(
-            summary = "Restablece la contraseña",
-            description = "Restablece la contraseña del usuario usando un token válido de restablecimiento. **No requiere autenticación previa.**",
+            summary = "Restablece la contraseña del usuario",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede restablecer contraseña con token válido (acceso público)<br/>" +
+                         "• <strong>BARBER:</strong> Puede restablecer contraseña con token válido (acceso público)<br/>" +
+                         "• <strong>CLIENT:</strong> Puede restablecer contraseña con token válido (acceso público)",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Contraseña restablecida exitosamente",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Token inválido, expirado o datos de entrada inválidos",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
     )
     @PostMapping(ApiConstants.RESET_PASSWORD_URL)
     @SecurityRequirements({})
-    public ResponseEntity<ApiResponseDto<String>> resetPassword(@Valid @RequestBody ResetPasswordRequestDto request, HttpServletRequest request2) {
-        authService.resetPassword(request);
+    public ResponseEntity<ApiResponseDto<String>> resetPassword(@Valid @RequestBody ResetPasswordRequestDto resetPasswordRequestDto, HttpServletRequest request) {
+        authService.resetPassword(resetPasswordRequestDto);
 
         return ResponseEntity.ok(
                 ApiResponseDto.<String>builder()
                         .status(HttpStatus.OK.value())
                         .message("Contraseña restablecida exitosamente")
                         .timestamp(LocalDateTime.now())
-                        .path(request2.getRequestURI())
+                        .path(request.getRequestURI())
                         .build()
         );
     }
 
+    /**
+     * Verifica si el token JWT del usuario es válido y devuelve información básica del usuario autenticado.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede verificar su propio estado de autenticación
+     * - BARBER: Puede verificar su propio estado de autenticación
+     * - CLIENT: Puede verificar su propio estado de autenticación
+     *
+     * @param authHeader Header de autorización con el token JWT
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta con información del usuario autenticado
+     */
     @Operation(
-            summary = "Verifica la autenticación del usuario",
-            description = "Verifica si el token JWT es válido y devuelve información del usuario autenticado.",
+            summary = "Verifica el estado de autenticación",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede verificar su propio estado de autenticación<br/>" +
+                         "• <strong>BARBER:</strong> Puede verificar su propio estado de autenticación<br/>" +
+                         "• <strong>CLIENT:</strong> Puede verificar su propio estado de autenticación",
             security = @SecurityRequirement(name = "bearerAuth"),
             responses = {
                     @ApiResponse(
                             responseCode = "200",
-                            description = "Token válido",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "401",
-                            description = "Token inválido o expirado",
+                            description = "Token válido - Usuario autenticado",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
@@ -287,19 +338,28 @@ public class AuthController {
         );
     }
 
+    /**
+     * Endpoint administrativo para limpiar manualmente los tokens de restablecimiento de contraseña expirados.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Acceso completo a funcionalidades administrativas de limpieza
+     * - BARBER: Acceso denegado - funcionalidad exclusiva de administradores
+     * - CLIENT: Acceso denegado - funcionalidad exclusiva de administradores
+     *
+     * @param request Request HTTP para extraer información de la solicitud
+     * @return Respuesta confirmando la limpieza de tokens expirados
+     */
     @Operation(
             summary = "Limpia tokens de restablecimiento expirados",
-            description = "Endpoint administrativo para limpiar manualmente los tokens de restablecimiento de contraseña expirados.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Acceso completo a funcionalidades administrativas de limpieza<br/>" +
+                         "• <strong>BARBER:</strong> Acceso denegado - funcionalidad exclusiva de administradores<br/>" +
+                         "• <strong>CLIENT:</strong> Acceso denegado - funcionalidad exclusiva de administradores",
             security = @SecurityRequirement(name = "bearerAuth"),
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Limpieza completada exitosamente",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-                    ),
-                    @ApiResponse(
-                            responseCode = "401",
-                            description = "Token inválido o sin permisos",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     )
             }
