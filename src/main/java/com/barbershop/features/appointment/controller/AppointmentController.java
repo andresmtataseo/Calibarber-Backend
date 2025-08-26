@@ -100,10 +100,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/{appointmentId}")
+    @GetMapping
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> getAppointmentById(
             @Parameter(description = "ID de la cita", required = true)
-            @PathVariable String appointmentId,
+            @RequestParam String appointmentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -188,10 +188,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PutMapping("/{appointmentId}")
+    @PutMapping
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> updateAppointment(
             @Parameter(description = "ID de la cita", required = true)
-            @PathVariable String appointmentId,
+            @RequestParam String appointmentId,
             @Valid @RequestBody UpdateAppointmentRequestDto request,
             HttpServletRequest httpRequest) {
         
@@ -227,10 +227,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @DeleteMapping("/{appointmentId}")
+    @DeleteMapping
     public ResponseEntity<ApiResponseDto<Void>> deleteAppointment(
             @Parameter(description = "ID de la cita", required = true)
-            @PathVariable String appointmentId,
+            @RequestParam String appointmentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -272,10 +272,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/client/{clientId}")
+    @GetMapping("/by-client")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAppointmentsByClient(
             @Parameter(description = "ID del cliente", required = true)
-            @PathVariable String clientId,
+            @RequestParam String clientId,
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
@@ -323,10 +323,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/barber/{barberId}")
+    @GetMapping("/by-barber")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAppointmentsByBarber(
             @Parameter(description = "ID del barbero", required = true)
-            @PathVariable String barberId,
+            @RequestParam String barberId,
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
@@ -374,10 +374,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/status/{status}")
+    @GetMapping("/by-status")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAppointmentsByStatus(
             @Parameter(description = "Estado de la cita", required = true)
-            @PathVariable AppointmentStatus status,
+            @RequestParam AppointmentStatus status,
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
@@ -423,10 +423,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/client/{clientId}/upcoming")
+    @GetMapping("/upcoming/by-client")
     public ResponseEntity<ApiResponseDto<List<AppointmentResponseDto>>> getUpcomingAppointmentsByClient(
             @Parameter(description = "ID del cliente", required = true)
-            @PathVariable String clientId,
+            @RequestParam String clientId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -462,10 +462,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/barber/{barberId}/upcoming")
+    @GetMapping("/upcoming/by-barber")
     public ResponseEntity<ApiResponseDto<List<AppointmentResponseDto>>> getUpcomingAppointmentsByBarber(
             @Parameter(description = "ID del barbero", required = true)
-            @PathVariable String barberId,
+            @RequestParam String barberId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -503,10 +503,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PatchMapping("/{appointmentId}/cancel")
+    @PatchMapping("/cancel")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> cancelAppointment(
             @Parameter(description = "ID de la cita", required = true)
-            @PathVariable String appointmentId,
+            @RequestParam String appointmentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -542,10 +542,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PatchMapping("/{appointmentId}/confirm")
+    @PatchMapping("/confirm")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> confirmAppointment(
             @Parameter(description = "ID de la cita", required = true)
-            @PathVariable String appointmentId,
+            @RequestParam String appointmentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
@@ -581,10 +581,10 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PatchMapping("/{appointmentId}/complete")
+    @PatchMapping("/complete")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> completeAppointment(
             @Parameter(description = "ID de la cita", required = true)
-            @PathVariable String appointmentId,
+            @RequestParam String appointmentId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
