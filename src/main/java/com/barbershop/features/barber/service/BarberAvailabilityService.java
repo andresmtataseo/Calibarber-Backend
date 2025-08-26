@@ -11,7 +11,9 @@ import com.barbershop.features.barber.repository.BarberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -114,13 +116,16 @@ public class BarberAvailabilityService {
      * Obtiene todas las disponibilidades paginadas de un barbero
      */
     @Transactional(readOnly = true)
-    public Page<BarberAvailabilityResponseDto> getAvailabilitiesByBarberPaginated(String barberId, Pageable pageable) {
+    public Page<BarberAvailabilityResponseDto> getAvailabilitiesByBarberPaginated(String barberId, int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo disponibilidades paginadas del barbero: {}", barberId);
         
         // Verificar que el barbero existe
         if (!barberRepository.findByIdAndActive(barberId).isPresent()) {
             throw new UserNotFoundException("Barbero no encontrado con ID: " + barberId);
         }
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<BarberAvailability> availabilities = availabilityRepository.findByBarberId(barberId, pageable);
         return availabilities.map(availabilityMapper::toResponseDto);

@@ -11,7 +11,9 @@ import com.barbershop.features.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -65,9 +67,11 @@ public class BarberService {
      * Obtiene todos los barberos activos paginados
      */
     @Transactional(readOnly = true)
-    public Page<BarberResponseDto> getAllBarbers(Pageable pageable) {
-        log.info("Obteniendo barberos paginados: página {}, tamaño {}", 
-                pageable.getPageNumber(), pageable.getPageSize());
+    public Page<BarberResponseDto> getAllBarbers(int page, int size, String sortBy, String sortDir) {
+        log.info("Obteniendo barberos paginados: página {}, tamaño {}", page, size);
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Barber> barbers = barberRepository.findAllActive(pageable);
         return barbers.map(barberMapper::toResponseDto);
@@ -77,8 +81,11 @@ public class BarberService {
      * Obtiene barberos por barbería
      */
     @Transactional(readOnly = true)
-    public Page<BarberResponseDto> getBarbersByBarbershop(String barbershopId, Pageable pageable) {
+    public Page<BarberResponseDto> getBarbersByBarbershop(String barbershopId, int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo barberos de la barbería: {}", barbershopId);
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Barber> barbers = barberRepository.findByBarbershopIdAndActive(barbershopId, pageable);
         return barbers.map(barberMapper::toResponseDto);
@@ -88,8 +95,11 @@ public class BarberService {
      * Obtiene barberos por especialización
      */
     @Transactional(readOnly = true)
-    public Page<BarberResponseDto> getBarbersBySpecialization(String specialization, Pageable pageable) {
+    public Page<BarberResponseDto> getBarbersBySpecialization(String specialization, int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo barberos con especialización: {}", specialization);
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Barber> barbers = barberRepository.findBySpecializationContainingIgnoreCaseAndActive(specialization, pageable);
         return barbers.map(barberMapper::toResponseDto);
@@ -200,12 +210,15 @@ public class BarberService {
      * Obtiene barberos eliminados (solo administradores)
      */
     @Transactional(readOnly = true)
-    public Page<BarberResponseDto> getDeletedBarbers(Pageable pageable) {
+    public Page<BarberResponseDto> getDeletedBarbers(int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo barberos eliminados");
         
         if (!isCurrentUserAdmin()) {
             throw new AccessDeniedException("Solo los administradores pueden ver barberos eliminados");
         }
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Barber> deletedBarbers = barberRepository.findAllInactive(pageable);
         return deletedBarbers.map(barberMapper::toResponseDto);

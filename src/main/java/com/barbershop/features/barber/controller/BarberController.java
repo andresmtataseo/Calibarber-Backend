@@ -40,23 +40,33 @@ public class BarberController {
 
     // ========== ENDPOINTS CRUD BÁSICOS PARA BARBEROS ==========
 
+    /**
+     * Crea un nuevo barbero en el sistema asociándolo a una barbería específica.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede crear barberos en cualquier barbería
+     * - BARBERSHOP_OWNER: Puede crear barberos en sus propias barberías
+     * - BARBER: No tiene permisos para crear otros barberos
+     * - CLIENT: No tiene permisos para crear barberos
+     *
+     * @param createDto Datos del barbero a crear
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos del barbero creado
+     */
     @Operation(
             summary = "Crear nuevo barbero",
-            description = "Crea un nuevo barbero en el sistema.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede crear barberos en cualquier barbería<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede crear barberos en sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para crear otros barberos<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para crear barberos",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
                             description = "Barbero creado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Datos de entrada inválidos"
-                    ),
-                    @ApiResponse(
-                            responseCode = "409",
-                            description = "El usuario ya es barbero en esta barbería"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
@@ -78,19 +88,40 @@ public class BarberController {
         );
     }
 
+    /**
+     * Obtiene barberos del sistema con diferentes opciones de filtrado y paginación.
+     * Puede devolver un barbero específico por ID, barberos por barbería, por especialización o todos los barberos.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede obtener información de cualquier barbero
+     * - BARBERSHOP_OWNER: Puede obtener barberos de sus propias barberías
+     * - BARBER: Solo puede obtener su propia información cuando se especifica ID
+     * - CLIENT: Puede obtener información básica de barberos para agendar citas
+     *
+     * @param id ID del barbero específico (opcional)
+     * @param barbershopId ID de la barbería para filtrar (opcional)
+     * @param specialization Especialización para filtrar (opcional)
+     * @param page Número de página para paginación
+     * @param size Tamaño de página para paginación
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con barbero específico o lista paginada de barberos
+     */
     @Operation(
             summary = "Obtener barberos",
-            description = "Devuelve una lista paginada de barberos o un barbero específico por ID. Permite filtrar por barbería y especialización.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener información de cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede obtener su propia información cuando se especifica ID<br/>" +
+                         "• <strong>CLIENT:</strong> Puede obtener información básica de barberos para agendar citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Operación exitosa",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Barbero no encontrado (cuando se especifica ID)"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
@@ -99,7 +130,10 @@ public class BarberController {
             @Parameter(description = "ID del barbero específico") @RequestParam(required = false) String id,
             @Parameter(description = "ID de la barbería para filtrar") @RequestParam(required = false) String barbershopId,
             @Parameter(description = "Especialización para filtrar") @RequestParam(required = false) String specialization,
-            Pageable pageable,
+            @Parameter(description = "Número de página (empezando desde 0)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Campo por el cual ordenar") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Dirección de ordenamiento (asc o desc)") @RequestParam(defaultValue = "asc") String sortDir,
             HttpServletRequest request) {
 
         if (id != null && !id.isEmpty()) {
@@ -116,7 +150,7 @@ public class BarberController {
             );
         } else if (barbershopId != null && !barbershopId.isEmpty()) {
             // Obtener barberos por barbería
-            Page<BarberResponseDto> barbers = barberService.getBarbersByBarbershop(barbershopId, pageable);
+            Page<BarberResponseDto> barbers = barberService.getBarbersByBarbershop(barbershopId, page, size, sortBy, sortDir);
             return ResponseEntity.ok(
                     ApiResponseDto.<Page<BarberResponseDto>>builder()
                             .status(HttpStatus.OK.value())
@@ -128,7 +162,7 @@ public class BarberController {
             );
         } else if (specialization != null && !specialization.isEmpty()) {
             // Obtener barberos por especialización
-            Page<BarberResponseDto> barbers = barberService.getBarbersBySpecialization(specialization, pageable);
+            Page<BarberResponseDto> barbers = barberService.getBarbersBySpecialization(specialization, page, size, sortBy, sortDir);
             return ResponseEntity.ok(
                     ApiResponseDto.<Page<BarberResponseDto>>builder()
                             .status(HttpStatus.OK.value())
@@ -140,7 +174,7 @@ public class BarberController {
             );
         } else {
             // Obtener todos los barberos paginados
-            Page<BarberResponseDto> barbers = barberService.getAllBarbers(pageable);
+            Page<BarberResponseDto> barbers = barberService.getAllBarbers(page, size, sortBy, sortDir);
             return ResponseEntity.ok(
                     ApiResponseDto.<Page<BarberResponseDto>>builder()
                             .status(HttpStatus.OK.value())
@@ -153,23 +187,34 @@ public class BarberController {
         }
     }
 
+    /**
+     * Actualiza los datos de un barbero existente en el sistema.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede actualizar cualquier barbero
+     * - BARBERSHOP_OWNER: Puede actualizar barberos de sus propias barberías
+     * - BARBER: No tiene permisos para actualizar otros barberos
+     * - CLIENT: No tiene permisos para actualizar barberos
+     *
+     * @param id ID del barbero a actualizar
+     * @param updateDto Datos actualizados del barbero
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos del barbero actualizado
+     */
     @Operation(
             summary = "Actualizar barbero",
-            description = "Actualiza los datos de un barbero existente.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede actualizar cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede actualizar barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para actualizar otros barberos<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para actualizar barberos",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Barbero actualizado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Barbero no encontrado"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para actualizar este barbero"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
@@ -192,23 +237,34 @@ public class BarberController {
         );
     }
 
+    /**
+     * Elimina un barbero del sistema mediante soft delete, marcándolo como inactivo
+     * sin borrarlo físicamente de la base de datos.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede eliminar cualquier barbero
+     * - BARBERSHOP_OWNER: Puede eliminar barberos de sus propias barberías
+     * - BARBER: No tiene permisos para eliminar otros barberos
+     * - CLIENT: No tiene permisos para eliminar barberos
+     *
+     * @param id ID del barbero a eliminar
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta de confirmación de eliminación
+     */
     @Operation(
             summary = "Eliminar barbero (soft delete)",
-            description = "Marca un barbero como eliminado sin borrarlo físicamente de la base de datos.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede eliminar cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede eliminar barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para eliminar otros barberos<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para eliminar barberos",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Barbero eliminado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Barbero no encontrado"
-                    ),
-                    @ApiResponse(
-                            responseCode = "403",
-                            description = "No tienes permisos para eliminar este barbero"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
@@ -229,23 +285,34 @@ public class BarberController {
         );
     }
 
+    /**
+     * Restaura un barbero que fue eliminado previamente mediante soft delete,
+     * volviéndolo a marcar como activo en el sistema.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede restaurar cualquier barbero eliminado
+     * - BARBERSHOP_OWNER: Puede restaurar barberos eliminados de sus propias barberías
+     * - BARBER: No tiene permisos para restaurar barberos
+     * - CLIENT: No tiene permisos para restaurar barberos
+     *
+     * @param id ID del barbero a restaurar
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos del barbero restaurado
+     */
     @Operation(
             summary = "Restaurar barbero eliminado",
-            description = "Restaura un barbero que fue eliminado previamente.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede restaurar cualquier barbero eliminado<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede restaurar barberos eliminados de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para restaurar barberos<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para restaurar barberos",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Barbero restaurado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Barbero no encontrado"
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "El barbero no está eliminado"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
@@ -267,9 +334,30 @@ public class BarberController {
         );
     }
 
+    /**
+     * Obtiene una lista paginada de barberos que han sido eliminados mediante soft delete.
+     * Útil para administración y posible restauración de barberos.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede obtener todos los barberos eliminados del sistema
+     * - BARBERSHOP_OWNER: Puede obtener barberos eliminados de sus propias barberías
+     * - BARBER: No tiene permisos para ver barberos eliminados
+     * - CLIENT: No tiene permisos para ver barberos eliminados
+     *
+     * @param page Número de página para paginación
+     * @param size Tamaño de página para paginación
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con lista paginada de barberos eliminados
+     */
     @Operation(
             summary = "Obtener barberos eliminados",
-            description = "Devuelve una lista paginada de barberos eliminados.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener todos los barberos eliminados del sistema<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener barberos eliminados de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> No tiene permisos para ver barberos eliminados<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para ver barberos eliminados",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -281,10 +369,13 @@ public class BarberController {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/deleted")
     public ResponseEntity<ApiResponseDto<Page<BarberResponseDto>>> getDeletedBarbers(
-            Pageable pageable,
+            @Parameter(description = "Número de página (empezando desde 0)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Campo por el cual ordenar") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Dirección de ordenamiento (asc o desc)") @RequestParam(defaultValue = "asc") String sortDir,
             HttpServletRequest request) {
 
-        Page<BarberResponseDto> deletedBarbers = barberService.getDeletedBarbers(pageable);
+        Page<BarberResponseDto> deletedBarbers = barberService.getDeletedBarbers(page, size, sortBy, sortDir);
 
         return ResponseEntity.ok(
                 ApiResponseDto.<Page<BarberResponseDto>>builder()
@@ -299,23 +390,34 @@ public class BarberController {
 
     // ========== ENDPOINTS PARA GESTIÓN DE DISPONIBILIDAD ==========
 
+    /**
+     * Crea una nueva disponibilidad horaria para un barbero específico,
+     * estableciendo los días y horarios en los que estará disponible para citas.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede crear disponibilidad para cualquier barbero
+     * - BARBERSHOP_OWNER: Puede crear disponibilidad para barberos de sus propias barberías
+     * - BARBER: Solo puede crear su propia disponibilidad
+     * - CLIENT: No tiene permisos para crear disponibilidades
+     *
+     * @param createDto Datos de la disponibilidad a crear
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con los datos de la disponibilidad creada
+     */
     @Operation(
             summary = "Crear disponibilidad de barbero",
-            description = "Crea una nueva disponibilidad horaria para un barbero.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede crear disponibilidad para cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede crear disponibilidad para barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede crear su propia disponibilidad<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para crear disponibilidades",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
                             description = "Disponibilidad creada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Datos inválidos o conflicto de horarios"
-                    ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Barbero no encontrado"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
@@ -337,25 +439,41 @@ public class BarberController {
         );
     }
 
+    /**
+     * Obtiene la disponibilidad completa de un barbero específico, incluyendo
+     * todos sus horarios disponibles para citas.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede obtener la disponibilidad de cualquier barbero
+     * - BARBERSHOP_OWNER: Puede obtener la disponibilidad de barberos de sus propias barberías
+     * - BARBER: Puede obtener su propia disponibilidad y la de otros barberos para coordinación
+     * - CLIENT: Puede obtener la disponibilidad de cualquier barbero para agendar citas
+     *
+     * @param barberId ID del barbero cuya disponibilidad se desea consultar
+     * @param dayOfWeek Día de la semana para filtrar (opcional)
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la disponibilidad del barbero
+     */
     @Operation(
             summary = "Obtener disponibilidades de barbero",
-            description = "Obtiene las disponibilidades de un barbero, opcionalmente filtradas por día.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener la disponibilidad de cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener la disponibilidad de barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Puede obtener su propia disponibilidad y la de otros barberos para coordinación<br/>" +
+                         "• <strong>CLIENT:</strong> Puede obtener la disponibilidad de cualquier barbero para agendar citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Disponibilidades obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Barbero no encontrado"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/{barberId}/availability")
+    @GetMapping("/availability")
     public ResponseEntity<ApiResponseDto<List<BarberAvailabilityResponseDto>>> getBarberAvailability(
-            @Parameter(description = "ID del barbero") @PathVariable String barberId,
+            @Parameter(description = "ID del barbero") @RequestParam String barberId,
             @Parameter(description = "Día de la semana para filtrar") @RequestParam(required = false) DayOfWeek dayOfWeek,
             HttpServletRequest request) {
 
@@ -381,30 +499,52 @@ public class BarberController {
         );
     }
 
+    /**
+     * Obtiene la disponibilidad de un barbero específico con paginación,
+     * útil para manejar grandes cantidades de horarios disponibles.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede obtener la disponibilidad paginada de cualquier barbero
+     * - BARBERSHOP_OWNER: Puede obtener la disponibilidad paginada de barberos de sus propias barberías
+     * - BARBER: Puede obtener su propia disponibilidad paginada y la de otros barberos para coordinación
+     * - CLIENT: Puede obtener la disponibilidad paginada de cualquier barbero para agendar citas
+     *
+     * @param barberId ID del barbero cuya disponibilidad se desea consultar
+     * @param page Número de página para paginación
+     * @param size Tamaño de página para paginación
+     * @param sortBy Campo por el cual ordenar
+     * @param sortDir Dirección de ordenamiento
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la disponibilidad paginada del barbero
+     */
     @Operation(
             summary = "Obtener disponibilidades paginadas de barbero",
-            description = "Obtiene las disponibilidades de un barbero con paginación.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener la disponibilidad paginada de cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener la disponibilidad paginada de barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Puede obtener su propia disponibilidad paginada y la de otros barberos para coordinación<br/>" +
+                         "• <strong>CLIENT:</strong> Puede obtener la disponibilidad paginada de cualquier barbero para agendar citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Disponibilidades paginadas obtenidas exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Barbero no encontrado"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/{barberId}/availability/paginated")
+    @GetMapping("/availability/paginated")
     public ResponseEntity<ApiResponseDto<Page<BarberAvailabilityResponseDto>>> getBarberAvailabilityPaginated(
-            @Parameter(description = "ID del barbero") @PathVariable String barberId,
-            Pageable pageable,
+            @Parameter(description = "ID del barbero") @RequestParam String barberId,
+            @Parameter(description = "Número de página (empezando desde 0)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Campo por el cual ordenar") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Dirección de ordenamiento (asc o desc)") @RequestParam(defaultValue = "asc") String sortDir,
             HttpServletRequest request) {
 
         Page<BarberAvailabilityResponseDto> availabilities = 
-                availabilityService.getAvailabilitiesByBarberPaginated(barberId, pageable);
+                availabilityService.getAvailabilitiesByBarberPaginated(barberId, page, size, sortBy, sortDir);
 
         return ResponseEntity.ok(
                 ApiResponseDto.<Page<BarberAvailabilityResponseDto>>builder()
@@ -417,29 +557,41 @@ public class BarberController {
         );
     }
 
+    /**
+     * Actualiza la disponibilidad de un barbero específico, permitiendo modificar
+     * horarios, días disponibles y otros aspectos de la disponibilidad.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede actualizar la disponibilidad de cualquier barbero
+     * - BARBERSHOP_OWNER: Puede actualizar la disponibilidad de barberos de sus propias barberías
+     * - BARBER: Solo puede actualizar su propia disponibilidad
+     * - CLIENT: No tiene permisos para actualizar disponibilidades
+     *
+     * @param availabilityId ID de la disponibilidad específica a actualizar
+     * @param updateDto Datos de actualización de la disponibilidad
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la disponibilidad actualizada
+     */
     @Operation(
             summary = "Actualizar disponibilidad",
-            description = "Actualiza una disponibilidad existente de un barbero.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede actualizar la disponibilidad de cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede actualizar la disponibilidad de barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede actualizar su propia disponibilidad<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para actualizar disponibilidades",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Disponibilidad actualizada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Disponibilidad no encontrada"
-                    ),
-                    @ApiResponse(
-                            responseCode = "400",
-                            description = "Conflicto de horarios"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PutMapping("/availability/{availabilityId}")
+    @PutMapping("/availability")
     public ResponseEntity<ApiResponseDto<BarberAvailabilityResponseDto>> updateAvailability(
-            @Parameter(description = "ID de la disponibilidad") @PathVariable String availabilityId,
+            @Parameter(description = "ID de la disponibilidad") @RequestParam String availabilityId,
             @Valid @RequestBody CreateBarberAvailabilityRequestDto updateDto,
             HttpServletRequest request) {
 
@@ -457,25 +609,41 @@ public class BarberController {
         );
     }
 
+    /**
+     * Elimina una disponibilidad específica de un barbero, removiendo completamente
+     * el horario disponible del sistema.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede eliminar la disponibilidad de cualquier barbero
+     * - BARBERSHOP_OWNER: Puede eliminar la disponibilidad de barberos de sus propias barberías
+     * - BARBER: Solo puede eliminar su propia disponibilidad
+     * - CLIENT: No tiene permisos para eliminar disponibilidades
+     *
+     * @param barberId ID del barbero cuya disponibilidad se desea eliminar
+     * @param availabilityId ID de la disponibilidad específica a eliminar
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta de confirmación de eliminación
+     */
     @Operation(
             summary = "Eliminar disponibilidad",
-            description = "Elimina una disponibilidad específica de un barbero.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede eliminar la disponibilidad de cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede eliminar la disponibilidad de barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede eliminar su propia disponibilidad<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para eliminar disponibilidades",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Disponibilidad eliminada exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Disponibilidad no encontrada"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @DeleteMapping("/availability/{availabilityId}")
+    @DeleteMapping("/availability")
     public ResponseEntity<ApiResponseDto<Void>> deleteAvailability(
-            @Parameter(description = "ID de la disponibilidad") @PathVariable String availabilityId,
+            @Parameter(description = "ID de la disponibilidad") @RequestParam String availabilityId,
             HttpServletRequest request) {
 
         availabilityService.deleteAvailability(availabilityId);
@@ -490,25 +658,41 @@ public class BarberController {
         );
     }
 
+    /**
+     * Alterna el estado de una disponibilidad específica de un barbero,
+     * activándola o desactivándola según el parámetro proporcionado.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede alternar la disponibilidad de cualquier barbero
+     * - BARBERSHOP_OWNER: Puede alternar la disponibilidad de barberos de sus propias barberías
+     * - BARBER: Solo puede alternar su propia disponibilidad
+     * - CLIENT: No tiene permisos para alternar disponibilidades
+     *
+     * @param availabilityId ID de la disponibilidad específica a alternar
+     * @param isAvailable Estado de disponibilidad a establecer
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con la disponibilidad actualizada
+     */
     @Operation(
             summary = "Habilitar/Deshabilitar disponibilidad",
-            description = "Cambia el estado de disponibilidad de un horario específico.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede alternar la disponibilidad de cualquier barbero<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede alternar la disponibilidad de barberos de sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede alternar su propia disponibilidad<br/>" +
+                         "• <strong>CLIENT:</strong> No tiene permisos para alternar disponibilidades",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
                             description = "Estado de disponibilidad actualizado exitosamente",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
                     ),
-                    @ApiResponse(
-                            responseCode = "404",
-                            description = "Disponibilidad no encontrada"
-                    )
+
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PatchMapping("/availability/{availabilityId}/toggle")
+    @PatchMapping("/availability/toggle")
     public ResponseEntity<ApiResponseDto<BarberAvailabilityResponseDto>> toggleAvailability(
-            @Parameter(description = "ID de la disponibilidad") @PathVariable String availabilityId,
+            @Parameter(description = "ID de la disponibilidad") @RequestParam String availabilityId,
             @Parameter(description = "Estado de disponibilidad") @RequestParam boolean isAvailable,
             HttpServletRequest request) {
 
@@ -526,9 +710,29 @@ public class BarberController {
         );
     }
 
+    /**
+     * Busca barberos disponibles en una barbería específica para un día y hora determinados.
+     * Útil para encontrar barberos que puedan atender citas en horarios específicos.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede buscar barberos disponibles en cualquier barbería
+     * - BARBERSHOP_OWNER: Puede buscar barberos disponibles en sus propias barberías
+     * - BARBER: Puede buscar barberos disponibles para coordinación
+     * - CLIENT: Puede buscar barberos disponibles para agendar citas
+     *
+     * @param barbershopId ID de la barbería donde buscar barberos disponibles
+     * @param dayOfWeek Día de la semana para la búsqueda
+     * @param time Hora específica para la búsqueda
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con lista de barberos disponibles en el horario especificado
+     */
     @Operation(
             summary = "Buscar barberos disponibles",
-            description = "Busca barberos disponibles en una barbería específica para un día y hora determinados.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede buscar barberos disponibles en cualquier barbería<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede buscar barberos disponibles en sus propias barberías<br/>" +
+                         "• <strong>BARBER:</strong> Puede buscar barberos disponibles para coordinación<br/>" +
+                         "• <strong>CLIENT:</strong> Puede buscar barberos disponibles para agendar citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -559,9 +763,27 @@ public class BarberController {
         );
     }
 
+    /**
+     * Obtiene todas las disponibilidades para un día específico de la semana,
+     * mostrando todos los barberos y sus horarios disponibles para ese día.
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede obtener disponibilidades de cualquier día del sistema
+     * - BARBERSHOP_OWNER: Puede obtener disponibilidades de sus propias barberías para el día especificado
+     * - BARBER: Puede obtener disponibilidades del día para coordinación
+     * - CLIENT: Puede obtener disponibilidades del día para agendar citas
+     *
+     * @param dayOfWeek Día de la semana para consultar disponibilidades
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return Respuesta con lista de disponibilidades para el día especificado
+     */
     @Operation(
             summary = "Obtener disponibilidades por día",
-            description = "Obtiene todas las disponibilidades para un día específico de la semana.",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener disponibilidades de cualquier día del sistema<br/>" +
+                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener disponibilidades de sus propias barberías para el día especificado<br/>" +
+                         "• <strong>BARBER:</strong> Puede obtener disponibilidades del día para coordinación<br/>" +
+                         "• <strong>CLIENT:</strong> Puede obtener disponibilidades del día para agendar citas",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -571,9 +793,9 @@ public class BarberController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/availability/day/{dayOfWeek}")
+    @GetMapping("/availability/day")
     public ResponseEntity<ApiResponseDto<List<BarberAvailabilityResponseDto>>> getAvailabilitiesByDay(
-            @Parameter(description = "Día de la semana") @PathVariable DayOfWeek dayOfWeek,
+            @Parameter(description = "Día de la semana") @RequestParam DayOfWeek dayOfWeek,
             HttpServletRequest request) {
 
         List<BarberAvailabilityResponseDto> availabilities = 
