@@ -29,7 +29,7 @@ import java.util.List;
 @RequestMapping("/api/v1/appointments")
 @RequiredArgsConstructor
 @Tag(name = "Citas", description = "Operaciones relacionadas con la gestión de citas")
-public class AppointmentController {
+public class    AppointmentController {
 
     private final AppointmentService appointmentService;
 
@@ -100,7 +100,7 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping
+    @GetMapping("/by-id")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> getAppointmentById(
             @Parameter(description = "ID de la cita", required = true)
             @RequestParam String appointmentId,
@@ -142,7 +142,7 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAllAppointments(
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
@@ -188,7 +188,7 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @PutMapping
+    @PutMapping("/update")
     public ResponseEntity<ApiResponseDto<AppointmentResponseDto>> updateAppointment(
             @Parameter(description = "ID de la cita", required = true)
             @RequestParam String appointmentId,
@@ -227,7 +227,7 @@ public class AppointmentController {
             }
     )
     @SecurityRequirement(name = "bearerAuth")
-    @DeleteMapping
+    @DeleteMapping("/delete")
     public ResponseEntity<ApiResponseDto<Void>> deleteAppointment(
             @Parameter(description = "ID de la cita", required = true)
             @RequestParam String appointmentId,
