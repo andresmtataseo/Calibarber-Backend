@@ -22,86 +22,21 @@ public class EmailService {
         helper.setTo(destinatario);
         helper.setSubject(asunto);
         helper.setText(htmlContenido, true);
-
         mailSender.send(mensaje);
     }
 
-    /**
-     * Envía un correo de recuperación de contraseña con formato HTML mejorado
-     * @param destinatario Email del destinatario
-     * @param nombreUsuario Nombre del usuario
-     * @param token Token de recuperación
-     * @param tiempoExpiracion Tiempo de expiración en minutos
-     * @throws MessagingException si hay error al enviar el correo
-     */
     public void enviarTokenRecuperacion(String destinatario, String nombreUsuario, String token, int tiempoExpiracion) throws MessagingException {
         String asunto = "Recuperación de Contraseña - Calibarber";
         String htmlContenido = construirHtmlRecuperacion(nombreUsuario, token, tiempoExpiracion);
-        
-        log.info("Enviando correo de recuperación a: {}", destinatario);
-        log.debug("Asunto del correo: {}", asunto);
-        log.debug("Token generado: {}", token);
-        
-        try {
-            enviarCorreoHtml(destinatario, asunto, htmlContenido);
-            log.info("Correo de recuperación enviado exitosamente a: {}", destinatario);
-        } catch (MessagingException e) {
-            log.error("Error detallado al enviar correo a {}: {}", destinatario, e.getMessage());
-            log.error("Causa raíz: {}", e.getCause() != null ? e.getCause().getMessage() : "No disponible");
-            throw e;
-        }
+        enviarCorreoHtml(destinatario, asunto, htmlContenido);
     }
 
-    /**
-     * Envía un correo de bienvenida a un nuevo usuario registrado
-     * @param destinatario Email del destinatario
-     * @param nombreUsuario Nombre del usuario
-     * @throws MessagingException si hay error al enviar el correo
-     */
     public void enviarEmailBienvenida(String destinatario, String nombreUsuario) throws MessagingException {
         String asunto = "¡Bienvenido a Calibarber Barbershop!";
         String htmlContenido = construirHtmlBienvenida(nombreUsuario);
-        
-        log.info("Enviando correo de bienvenida a: {}", destinatario);
-        log.debug("Asunto del correo: {}", asunto);
-        
-        try {
-            enviarCorreoHtml(destinatario, asunto, htmlContenido);
-            log.info("Correo de bienvenida enviado exitosamente a: {}", destinatario);
-        } catch (MessagingException e) {
-            log.error("Error detallado al enviar correo de bienvenida a {}: {}", destinatario, e.getMessage());
-            log.error("Causa raíz: {}", e.getCause() != null ? e.getCause().getMessage() : "No disponible");
-            throw e;
-        }
+        enviarCorreoHtml(destinatario, asunto, htmlContenido);
     }
 
-    /**
-     * Prueba la conectividad SMTP sin enviar un correo real
-     * @return true si la conexión es exitosa, false en caso contrario
-     */
-    public boolean probarConectividadSMTP() {
-        try {
-            log.info("Probando conectividad SMTP...");
-            mailSender.createMimeMessage(); // Esto fuerza una conexión
-            log.info("Conectividad SMTP exitosa");
-            return true;
-        } catch (Exception e) {
-            log.error("Error de conectividad SMTP: {}", e.getMessage());
-            log.error("Tipo de error: {}", e.getClass().getSimpleName());
-            if (e.getCause() != null) {
-                log.error("Causa raíz: {}", e.getCause().getMessage());
-            }
-            return false;
-        }
-    }
-
-    /**
-     * Construye el contenido HTML para el correo de recuperación
-     * @param nombreUsuario Nombre del usuario
-     * @param token Token de recuperación
-     * @param tiempoExpiracion Tiempo de expiración en minutos
-     * @return Contenido HTML del correo
-     */
     private String construirHtmlRecuperacion(String nombreUsuario, String token, int tiempoExpiracion) {
         return String.format("""
             <!DOCTYPE html>

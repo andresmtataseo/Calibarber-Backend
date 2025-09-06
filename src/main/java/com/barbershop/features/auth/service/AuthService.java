@@ -49,15 +49,15 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResponseDto signIn(SignInRequestDto request) {
         try {
-            log.info("Intentando autenticar usuario con email: {}", request.getEmail());
-            
+            // Normalizar email a minúsculas
+            String normalizedEmail = authUtils.normalizeEmail(request.getEmail());            
             // Autenticar credenciales
             authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword())
             );
             
             // Buscar usuario
-            User user = userRepository.findByEmail(request.getEmail())
+            User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new InvalidCredentialsException("Usuario no encontrado"));
             
             // Generar token
@@ -65,7 +65,7 @@ public class AuthService {
             LocalDateTime issuedAt = LocalDateTime.now();
             LocalDateTime expiresAt = jwtService.getExpirationDateFromToken(token);
             
-            log.info("Usuario autenticado exitosamente: {}", request.getEmail());
+            log.info("Usuario autenticado exitosamente: {}", normalizedEmail);
             
             return AuthResponseDto.builder()
                     .token(token)
@@ -79,10 +79,12 @@ public class AuthService {
                     .build();
                     
         } catch (BadCredentialsException e) {
-            log.warn("Intento de inicio de sesión fallido para email: {}", request.getEmail());
+            String normalizedEmail = authUtils.normalizeEmail(request.getEmail());
+            log.warn("Intento de inicio de sesión fallido para email: {}", normalizedEmail);
             throw new InvalidCredentialsException("Email o contraseña incorrectos");
         } catch (AuthenticationException e) {
-            log.warn("Error de autenticación para email: {}", request.getEmail());
+            String normalizedEmail = authUtils.normalizeEmail(request.getEmail());
+            log.warn("Error de autenticación para email: {}", normalizedEmail);
             throw new InvalidCredentialsException("Error en la autenticación");
         }
     }
@@ -95,16 +97,19 @@ public class AuthService {
      */
     @Transactional
     public AuthResponseDto signUp(SignUpRequestDto request) {
-        log.info("Intentando registrar nuevo usuario con email: {}", request.getEmail());
+        // Normalizar email a minúsculas
+        String normalizedEmail = authUtils.normalizeEmail(request.getEmail());
+        log.info("Intentando registrar nuevo usuario con email: {}", normalizedEmail);
         
         // Verificar si el usuario ya existe
-        if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("Intento de registro con email ya existente: {}", request.getEmail());
-            throw new UserAlreadyExistsException(request.getEmail());
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            log.warn("Intento de registro con email ya existente: {}", normalizedEmail);
+            throw new UserAlreadyExistsException(normalizedEmail);
         }
         
         // Crear nuevo usuario
         User user = authUserMapper.toUser(request);
+        user.setEmail(normalizedEmail); // Asegurar que el email se guarde normalizado
         user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
         user.setRole(RoleEnum.CLIENT);
         user.setCreatedAt(LocalDateTime.now());
@@ -117,15 +122,13 @@ public class AuthService {
         LocalDateTime issuedAt = LocalDateTime.now();
         LocalDateTime expiresAt = jwtService.getExpirationDateFromToken(token);
         
-        log.info("Usuario registrado exitosamente: {}", request.getEmail());
+        log.debug("Usuario registrado exitosamente: {}", request.getEmail());
         
         // Enviar email de bienvenida
         try {
             emailService.enviarEmailBienvenida(user.getEmail(), user.getFirstName());
-            log.info("Email de bienvenida enviado exitosamente a: {}", user.getEmail());
         } catch (Exception e) {
             log.error("Error al enviar email de bienvenida a {}: {}", user.getEmail(), e.getMessage());
-            // No lanzamos excepción para no afectar el registro del usuario
         }
         
         return AuthResponseDto.builder()
@@ -181,7 +184,11 @@ public class AuthService {
      */
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
-        return userRepository.existsByEmail(email);
+        String normalizedEmail = authUtils.normalizeEmail(email);
+        log.debug("Verificando si el email existe: {}", normalizedEmail);
+        boolean exists = userRepository.existsByEmail(normalizedEmail);
+        log.debug("Email {} existe: {}", normalizedEmail, exists);
+        return exists;
     }
 
     /**
@@ -268,27 +275,17 @@ public class AuthService {
     }
 
     /**
-     * Verifica si el token JWT es válido y devuelve información del usuario
-     * @param token Token JWT a verificar
+     * Verifica la información del usuario autenticado por email
+     * @param email Email del usuario autenticado
      * @return Información del usuario autenticado
-     * @throws InvalidTokenException si el token no es válido
+     * @throws InvalidTokenException si el usuario no es encontrado
      */
     @Transactional(readOnly = true)
-    public CheckAuthResponseDto checkAuth(String token) {
+    public CheckAuthResponseDto checkAuthByEmail(String email) {
         try {
-            // Extraer email del token
-            String email = jwtService.getUsernameFromToken(token);
-            
-            // Buscar usuario
+            // Buscar usuario por email
             User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidTokenException("Usuario no encontrado"));
-            
-            // Verificar si el token es válido
-            boolean isTokenValid = jwtService.isTokenValid(token, user);
-            
-            if (!isTokenValid) {
-                throw new InvalidTokenException("Token inválido o expirado");
-            }
             
             return CheckAuthResponseDto.builder()
                 .userId(user.getUserId())
@@ -300,15 +297,11 @@ public class AuthService {
                 .build();
                 
         } catch (Exception e) {
-            log.warn("Error al verificar token: {}", e.getMessage());
-            throw new InvalidTokenException("Token inválido");
+            log.warn("Error al verificar usuario por email: {}", e.getMessage());
+            throw new InvalidTokenException("Usuario no válido");
         }
     }
 
-    /**
-     * Limpia tokens de restablecimiento expirados
-     * Este método debería ser llamado periódicamente por un scheduler
-     */
     @Transactional
     public void cleanupExpiredTokens() {
         log.info("Limpiando tokens de restablecimiento expirados");

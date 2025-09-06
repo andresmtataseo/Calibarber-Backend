@@ -2,6 +2,7 @@ package com.barbershop.features.user.service;
 
 import com.barbershop.features.auth.exception.UserAlreadyExistsException;
 import com.barbershop.features.auth.exception.UserNotFoundException;
+import com.barbershop.features.auth.util.AuthUtils;
 import com.barbershop.features.user.dto.UserCreateDto;
 import com.barbershop.features.user.dto.UserResponseDto;
 import com.barbershop.features.user.dto.UserUpdateDto;
@@ -34,6 +35,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final AuthUtils authUtils;
 
     /**
      * Crea un nuevo usuario
@@ -41,14 +43,17 @@ public class UserService {
     public UserResponseDto createUser(UserCreateDto createDto) {
         log.info("Creando nuevo usuario con email: {}", createDto.getEmail());
         
+        // Normalizar email a minúsculas
+        String normalizedEmail = authUtils.normalizeEmail(createDto.getEmail());
+        
         // Verificar si el email ya existe
-        if (userRepository.existsByEmail(createDto.getEmail())) {
-            throw new UserAlreadyExistsException(createDto.getEmail());
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new UserAlreadyExistsException(normalizedEmail);
         }
         
         // Crear entidad User
         User user = User.builder()
-                .email(createDto.getEmail())
+                .email(normalizedEmail)
                 .passwordHash(passwordEncoder.encode(createDto.getPassword()))
                 .firstName(createDto.getFirstName())
                 .lastName(createDto.getLastName())
@@ -93,8 +98,7 @@ public class UserService {
         
         // Crear el objeto Pageable
         Pageable pageable = PageRequest.of(page, size, sort);
-        
-        // Llamar al método existente
+
         return getAllUsers(pageable);
     }
 
@@ -132,14 +136,16 @@ public class UserService {
         
         // Verificar si el email ya existe para otro usuario
         if (updateDto.getEmail() != null && !updateDto.getEmail().equals(user.getEmail())) {
-            if (userRepository.existsByEmailAndUserIdNot(updateDto.getEmail(), userId)) {
-                throw new UserAlreadyExistsException(updateDto.getEmail());
+            String normalizedEmail = authUtils.normalizeEmail(updateDto.getEmail());
+            if (userRepository.existsByEmailAndUserIdNot(normalizedEmail, userId)) {
+                throw new UserAlreadyExistsException(normalizedEmail);
             }
         }
         
         // Actualizar campos
         if (updateDto.getEmail() != null) {
-            user.setEmail(updateDto.getEmail());
+            String normalizedEmail = authUtils.normalizeEmail(updateDto.getEmail());
+            user.setEmail(normalizedEmail);
         }
         if (updateDto.getFirstName() != null) {
             user.setFirstName(updateDto.getFirstName());
@@ -263,11 +269,7 @@ public class UserService {
         
         // Para usuarios mock en tests, verificar si el username coincide con el email del usuario objetivo
         User targetUser = userRepository.findByIdAndNotDeleted(targetUserId).orElse(null);
-        if (targetUser != null && currentUserEmail.equals(targetUser.getEmail())) {
-            return true;
-        }
-        
-        return false;
+        return targetUser != null && currentUserEmail.equals(targetUser.getEmail());
     }
 
     /**

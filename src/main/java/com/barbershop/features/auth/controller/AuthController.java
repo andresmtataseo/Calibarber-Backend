@@ -39,18 +39,6 @@ public class AuthController {
     private final AuthService authService;
     private final TokenCleanupService tokenCleanupService;
 
-    /**
-     * Autentica a un usuario con su email y contraseña y devuelve un token JWT con información esencial de autenticación.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Puede iniciar sesión con credenciales de administrador
-     * - BARBER: Puede iniciar sesión con credenciales de barbero
-     * - CLIENT: Puede iniciar sesión con credenciales de cliente
-     *
-     * @param signInRequestDto Datos de inicio de sesión (email y contraseña)
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta con token JWT y información del usuario autenticado
-     */
     @Operation(
             summary = "Inicia sesión de un usuario",
             description = "<strong>Permisos:</strong><br/>" +
@@ -66,7 +54,7 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.SIGN_IN_URL)
-    @SecurityRequirements({})
+    @SecurityRequirements()
     public ResponseEntity<ApiResponseDto<AuthResponseDto>> signIn(@Valid @RequestBody SignInRequestDto signInRequestDto, HttpServletRequest request) {
         AuthResponseDto authResponse = authService.signIn(signInRequestDto);
         return ResponseEntity.ok(
@@ -80,18 +68,6 @@ public class AuthController {
         );
     }
 
-    /**
-     * Crea una nueva cuenta de usuario con el rol por defecto (CLIENTE) y devuelve un token JWT con información esencial de autenticación.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Puede registrar nuevos usuarios (acceso público)
-     * - BARBER: Puede registrar nuevos usuarios (acceso público)
-     * - CLIENT: Puede registrar nuevos usuarios (acceso público)
-     *
-     * @param signUpRequestDto Datos de registro del nuevo usuario
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta con token JWT y información del usuario registrado
-     */
     @Operation(
             summary = "Registra un nuevo usuario",
             description = "<strong>Permisos:</strong><br/>" +
@@ -107,7 +83,7 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.SIGN_UP_URL)
-    @SecurityRequirements({})
+    @SecurityRequirements()
     public ResponseEntity<ApiResponseDto<AuthResponseDto>> signUp(@Valid @RequestBody SignUpRequestDto signUpRequestDto, HttpServletRequest request) {
         AuthResponseDto authResponse = authService.signUp(signUpRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(
@@ -121,20 +97,6 @@ public class AuthController {
         );
     }
 
-
-    /**
-     * Permite al usuario autenticado cambiar su contraseña proporcionando la contraseña actual y la nueva contraseña.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Solo puede cambiar su propia contraseña
-     * - BARBER: Solo puede cambiar su propia contraseña
-     * - CLIENT: Solo puede cambiar su propia contraseña
-     *
-     * @param changePasswordRequestDto Datos para cambio de contraseña (contraseña actual, nueva y confirmación)
-     * @param authentication Información de autenticación del usuario
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta confirmando el cambio de contraseña
-     */
     @Operation(
             summary = "Cambia la contraseña del usuario autenticado",
             description = "<strong>Permisos:</strong><br/>" +
@@ -167,18 +129,6 @@ public class AuthController {
         );
     }
 
-    /**
-     * Verifica si un email específico ya está registrado en el sistema.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Puede verificar disponibilidad de cualquier email (acceso público)
-     * - BARBER: Puede verificar disponibilidad de cualquier email (acceso público)
-     * - CLIENT: Puede verificar disponibilidad de cualquier email (acceso público)
-     *
-     * @param email Email a verificar su disponibilidad
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta indicando si el email está disponible o no
-     */
     @Operation(
             summary = "Verifica si un email está disponible",
             description = "<strong>Permisos:</strong><br/>" +
@@ -194,10 +144,11 @@ public class AuthController {
             }
     )
     @GetMapping(ApiConstants.CHECK_EMAIL_URL)
-    @SecurityRequirements({})
+    @SecurityRequirements()
     public ResponseEntity<ApiResponseDto<String>> checkEmailAvailability(@RequestParam @Valid @Email String email, HttpServletRequest request) {
 
-        boolean exists = authService.emailExists(email);
+        String normalizedEmail = email.toLowerCase().trim();
+        boolean exists = authService.emailExists(normalizedEmail);
 
         String message = exists ? "El email no está disponible" : "El email está disponible";
 
@@ -211,18 +162,6 @@ public class AuthController {
         );
     }
 
-    /**
-     * Envía un email con un token de recuperación de contraseña al usuario.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Puede solicitar recuperación de contraseña (acceso público)
-     * - BARBER: Puede solicitar recuperación de contraseña (acceso público)
-     * - CLIENT: Puede solicitar recuperación de contraseña (acceso público)
-     *
-     * @param forgotPasswordRequestDto Datos con el email del usuario para recuperación
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta confirmando el envío del email de recuperación
-     */
     @Operation(
             summary = "Solicita recuperación de contraseña",
             description = "<strong>Permisos:</strong><br/>" +
@@ -238,7 +177,7 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.FORGOT_PASSWORD_URL)
-    @SecurityRequirements({})
+    @SecurityRequirements()
     public ResponseEntity<ApiResponseDto<String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDto request, HttpServletRequest request2) {
         authService.forgotPassword(request);
 
@@ -252,18 +191,6 @@ public class AuthController {
         );
     }
 
-    /**
-     * Restablece la contraseña del usuario utilizando el token de restablecimiento enviado por email.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Puede restablecer contraseña con token válido (acceso público)
-     * - BARBER: Puede restablecer contraseña con token válido (acceso público)
-     * - CLIENT: Puede restablecer contraseña con token válido (acceso público)
-     *
-     * @param resetPasswordRequestDto Datos con token de restablecimiento y nueva contraseña
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta confirmando el restablecimiento de contraseña
-     */
     @Operation(
             summary = "Restablece la contraseña del usuario",
             description = "<strong>Permisos:</strong><br/>" +
@@ -279,7 +206,7 @@ public class AuthController {
             }
     )
     @PostMapping(ApiConstants.RESET_PASSWORD_URL)
-    @SecurityRequirements({})
+    @SecurityRequirements()
     public ResponseEntity<ApiResponseDto<String>> resetPassword(@Valid @RequestBody ResetPasswordRequestDto resetPasswordRequestDto, HttpServletRequest request) {
         authService.resetPassword(resetPasswordRequestDto);
 
@@ -293,18 +220,6 @@ public class AuthController {
         );
     }
 
-    /**
-     * Verifica si el token JWT del usuario es válido y devuelve información básica del usuario autenticado.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Puede verificar su propio estado de autenticación
-     * - BARBER: Puede verificar su propio estado de autenticación
-     * - CLIENT: Puede verificar su propio estado de autenticación
-     *
-     * @param authHeader Header de autorización con el token JWT
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta con información del usuario autenticado
-     */
     @Operation(
             summary = "Verifica el estado de autenticación",
             description = "<strong>Permisos:</strong><br/>" +
@@ -321,34 +236,35 @@ public class AuthController {
             }
     )
     @GetMapping("/check-auth")
-    @SecurityRequirements({})
-    public ResponseEntity<ApiResponseDto<CheckAuthResponseDto>> checkAuth(@RequestHeader("Authorization") String authHeader,HttpServletRequest request) {
-        String token = authHeader.substring(7);
+    public ResponseEntity<ApiResponseDto<CheckAuthResponseDto>> checkAuth(
+            Authentication authentication,
+            HttpServletRequest request) {
+        
+        try {
+            String userEmail = authentication.getName();
+            CheckAuthResponseDto authInfo = authService.checkAuthByEmail(userEmail);
 
-        CheckAuthResponseDto authInfo = authService.checkAuth(token);
-
-        return ResponseEntity.ok(
-                ApiResponseDto.<CheckAuthResponseDto>builder()
-                        .status(HttpStatus.OK.value())
-                        .message("Token válido")
-                        .data(authInfo)
-                        .timestamp(LocalDateTime.now())
-                        .path(request.getRequestURI())
-                        .build()
-        );
+            return ResponseEntity.ok(
+                    ApiResponseDto.<CheckAuthResponseDto>builder()
+                            .status(HttpStatus.OK.value())
+                            .message("Token válido")
+                            .data(authInfo)
+                            .timestamp(LocalDateTime.now())
+                            .path(request.getRequestURI())
+                            .build()
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    ApiResponseDto.<CheckAuthResponseDto>builder()
+                            .status(HttpStatus.UNAUTHORIZED.value())
+                            .message("Token inválido o expirado")
+                            .timestamp(LocalDateTime.now())
+                            .path(request.getRequestURI())
+                            .build()
+            );
+        }
     }
 
-    /**
-     * Endpoint administrativo para limpiar manualmente los tokens de restablecimiento de contraseña expirados.
-     *
-     * Permisos de acceso:
-     * - ADMIN: Acceso completo a funcionalidades administrativas de limpieza
-     * - BARBER: Acceso denegado - funcionalidad exclusiva de administradores
-     * - CLIENT: Acceso denegado - funcionalidad exclusiva de administradores
-     *
-     * @param request Request HTTP para extraer información de la solicitud
-     * @return Respuesta confirmando la limpieza de tokens expirados
-     */
     @Operation(
             summary = "Limpia tokens de restablecimiento expirados",
             description = "<strong>Permisos:</strong><br/>" +
