@@ -2,7 +2,9 @@ package com.barbershop.features.service.service;
 
 import com.barbershop.common.exception.ResourceNotFoundException;
 import com.barbershop.common.exception.ResourceAlreadyExistsException;
+import com.barbershop.common.exception.BusinessLogicException;
 import com.barbershop.features.auth.security.JwtService;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.barbershop.features.service.dto.ServiceResponseDto;
 import com.barbershop.features.service.dto.request.CreateServiceRequestDto;
 import com.barbershop.features.service.dto.request.UpdateServiceRequestDto;
@@ -21,9 +23,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.barbershop.shared.util.SecurityUtils;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,18 +61,27 @@ public class ServiceService {
             throw new ResourceAlreadyExistsException("Ya existe un servicio con el nombre '" + request.getName() + "' en esta barbería");
         }
         
-        com.barbershop.features.service.model.Service service = serviceMapper.toEntity(request);
-        com.barbershop.features.service.model.Service savedService = serviceRepository.save(service);
-        
-        ServiceResponseDto responseDto = serviceMapper.toResponseDto(savedService);
-        
-        log.info("Servicio creado exitosamente con ID: {}", savedService.getServiceId());
-        return ApiResponseDto.<ServiceResponseDto>builder()
-                .status(HttpStatus.CREATED.value())
-                .message("Servicio creado exitosamente")
-                .data(responseDto)
-                .timestamp(LocalDateTime.now())
-                .build();
+        try {
+            com.barbershop.features.service.model.Service service = serviceMapper.toEntity(request);
+            com.barbershop.features.service.model.Service savedService = serviceRepository.save(service);
+            
+            ServiceResponseDto responseDto = serviceMapper.toResponseDto(savedService);
+            
+            log.info("Servicio creado exitosamente con ID: {}", savedService.getServiceId());
+            return ApiResponseDto.<ServiceResponseDto>builder()
+                    .status(HttpStatus.CREATED.value())
+                    .message("Servicio creado exitosamente")
+                    .data(responseDto)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+        } catch (DataIntegrityViolationException ex) {
+            log.error("Error de integridad de datos al crear servicio: {}", ex.getMessage());
+            if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("barbershop_id")) {
+                throw new BusinessLogicException("La barbería especificada no existe. Por favor, seleccione una barbería válida.");
+            }
+            throw new BusinessLogicException("Error al crear el servicio. Verifique que todos los datos sean válidos.");
+        }
+
     }
 
     /**
@@ -235,18 +246,27 @@ public class ServiceService {
             }
         }
         
-        serviceMapper.updateEntity(existingService, request);
-        com.barbershop.features.service.model.Service updatedService = serviceRepository.save(existingService);
-        
-        ServiceResponseDto responseDto = serviceMapper.toResponseDto(updatedService);
-        
-        log.info("Servicio actualizado exitosamente con ID: {}", serviceId);
-        return ApiResponseDto.<ServiceResponseDto>builder()
-                .status(HttpStatus.OK.value())
-                .message("Servicio actualizado exitosamente")
-                .data(responseDto)
-                .timestamp(LocalDateTime.now())
-                .build();
+        try {
+            serviceMapper.updateEntity(existingService, request);
+            com.barbershop.features.service.model.Service updatedService = serviceRepository.save(existingService);
+            
+            ServiceResponseDto responseDto = serviceMapper.toResponseDto(updatedService);
+            
+            log.info("Servicio actualizado exitosamente con ID: {}", serviceId);
+            return ApiResponseDto.<ServiceResponseDto>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Servicio actualizado exitosamente")
+                    .data(responseDto)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+        } catch (DataIntegrityViolationException ex) {
+            log.error("Error de integridad de datos al actualizar servicio: {}", ex.getMessage());
+            if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("barbershop_id")) {
+                throw new BusinessLogicException("La barbería especificada no existe. Por favor, seleccione una barbería válida.");
+            }
+            throw new BusinessLogicException("Error al actualizar el servicio. Verifique que todos los datos sean válidos.");
+        }
+
     }
 
     /**
@@ -388,16 +408,14 @@ public class ServiceService {
      * Verifica si el usuario autenticado es administrador
      */
     private boolean isCurrentUserAdmin() {
-        User currentUser = getCurrentUser();
-        return RoleEnum.ADMIN.equals(currentUser.getRole());
+        return SecurityUtils.isCurrentUserAdmin();
     }
     
     /**
      * Verifica si el usuario autenticado es barbero
      */
     private boolean isCurrentUserBarber() {
-        User currentUser = getCurrentUser();
-        return RoleEnum.BARBER.equals(currentUser.getRole());
+        return SecurityUtils.isCurrentUserBarber();
     }
     
     /**

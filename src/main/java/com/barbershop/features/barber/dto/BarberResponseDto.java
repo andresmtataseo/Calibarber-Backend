@@ -1,6 +1,5 @@
 package com.barbershop.features.barber.dto;
 
-import com.barbershop.features.user.dto.UserResponseDto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -34,6 +33,5 @@ public class BarberResponseDto {
     @Schema(description = "Fecha de última actualización del barbero", example = "2024-01-15T10:30:00")
     private LocalDateTime updatedAt;
 
-    @Schema(description = "Información del usuario asociado")
-    private UserResponseDto user;
+
 }

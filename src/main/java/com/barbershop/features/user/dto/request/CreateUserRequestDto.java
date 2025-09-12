@@ -23,7 +23,7 @@ public class CreateUserRequestDto {
     private String password;
 
     @NotNull(message = "El rol es obligatorio")
-    @Schema(description = "Rol del usuario", example = "CLIENT", required = true)
+    @Schema(description = "Rol del usuario", example = "ROLE_CLIENT", required = true)
     private RoleEnum role;
 
     @NotBlank(message = "El nombre es obligatorio")

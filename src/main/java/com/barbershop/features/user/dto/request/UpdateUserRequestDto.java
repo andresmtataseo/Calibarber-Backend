@@ -14,7 +14,7 @@ public class UpdateUserRequestDto {
     @Schema(description = "Email del usuario", example = "usuario@ejemplo.com")
     private String email;
 
-    @Schema(description = "Rol del usuario", example = "CLIENT")
+    @Schema(description = "Rol del usuario", example = "ROLE_CLIENT")
     private RoleEnum role;
 
     @Size(min = 2, max = 50, message = "El nombre debe tener entre 2 y 50 caracteres")

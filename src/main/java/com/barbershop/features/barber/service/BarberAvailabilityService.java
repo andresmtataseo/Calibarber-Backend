@@ -14,9 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.barbershop.shared.util.SecurityUtils;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -337,31 +337,22 @@ public class BarberAvailabilityService {
         }
         
         // Los administradores pueden modificar cualquier disponibilidad
-        if (hasRole(authentication, "ROLE_ADMIN")) {
+        if (SecurityUtils.hasRole(authentication, "ROLE_ADMIN")) {
             return true;
         }
         
         // Los barberos pueden modificar su propia disponibilidad
-        if (hasRole(authentication, "ROLE_BARBER")) {
+        if (SecurityUtils.hasRole(authentication, "ROLE_BARBER")) {
             String currentUserId = authentication.getName();
             return barberRepository.findByUserIdAndActive(currentUserId)
                     .map(barber -> barber.getBarberId().equals(barberId))
                     .orElse(false);
         }
         
-        // Los propietarios pueden modificar disponibilidades de barberos de sus barberías
-        if (hasRole(authentication, "ROLE_BARBERSHOP_OWNER")) {
-            String currentUserId = authentication.getName();
-            // Aquí se necesitaría lógica adicional para verificar la propiedad de la barbería
-            return true; // Simplificado por ahora
-        }
+        // Eliminado: ROLE_BARBERSHOP_OWNER no existe en el sistema
         
         return false;
     }
 
-    private boolean hasRole(Authentication authentication, String role) {
-        return authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> authority.equals(role));
-    }
+
 }

@@ -35,9 +35,9 @@ public class ServiceController {
      * Crea un nuevo servicio en una barbería específica
      *
      * Permisos de acceso:
-     * - ADMIN: Puede crear servicios en cualquier barbería
-     * - BARBER: Solo puede crear servicios en su propia barbería
-     * - CLIENT: Acceso denegado
+     * - ROLE_ADMIN: Puede crear servicios en cualquier barbería
+     * - ROLE_BARBER: Solo puede crear servicios en su propia barbería
+     * - ROLE_CLIENT: Acceso denegado
      *
      * @param request Datos del servicio a crear
      * @param token Token de autorización para validar permisos
@@ -47,9 +47,9 @@ public class ServiceController {
     @Operation(
             summary = "Crear un nuevo servicio",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede crear servicios en cualquier barbería<br/>" +
-                         "• <strong>BARBER:</strong> Solo puede crear servicios en su propia barbería<br/>" +
-                         "• <strong>CLIENT:</strong> Acceso denegado"
+                         "• <strong>ROLE_ADMIN:</strong> Puede crear servicios en cualquier barbería<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Solo puede crear servicios en su propia barbería<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Acceso denegado"
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
@@ -67,9 +67,9 @@ public class ServiceController {
      * Obtiene un servicio específico por su ID
      *
      * Permisos de acceso:
-     * - ADMIN: Puede obtener cualquier servicio
-     * - BARBER: Puede obtener cualquier servicio
-     * - CLIENT: Puede obtener cualquier servicio
+     * - ROLE_ADMIN: Puede obtener cualquier servicio
+     * - ROLE_BARBER: Puede obtener cualquier servicio
+     * - ROLE_CLIENT: Puede obtener cualquier servicio
      *
      * @param serviceId ID del servicio a obtener
      * @param httpRequest Request HTTP para extraer el token de autenticación
@@ -79,9 +79,9 @@ public class ServiceController {
     @Operation(
             summary = "Obtener servicio por ID",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede obtener cualquier servicio<br/>" +
-                         "• <strong>BARBER:</strong> Puede obtener cualquier servicio<br/>" +
-                         "• <strong>CLIENT:</strong> Puede obtener cualquier servicio"
+                         "• <strong>ROLE_ADMIN:</strong> Puede obtener cualquier servicio<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Puede obtener cualquier servicio<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Puede obtener cualquier servicio"
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
@@ -100,9 +100,9 @@ public class ServiceController {
      * Obtiene una lista de todos los servicios disponibles
      *
      * Permisos de acceso:
-     * - ADMIN: Puede obtener todos los servicios del sistema
-     * - BARBER: Puede obtener todos los servicios del sistema
-     * - CLIENT: Puede obtener todos los servicios del sistema
+     * - ROLE_ADMIN: Puede obtener todos los servicios del sistema
+     * - ROLE_BARBER: Puede obtener todos los servicios del sistema
+     * - ROLE_CLIENT: Puede obtener todos los servicios del sistema
      *
      * @param httpRequest Request HTTP para extraer el token de autenticación
      * @return Respuesta con la lista de todos los servicios
@@ -111,9 +111,9 @@ public class ServiceController {
     @Operation(
             summary = "Obtener todos los servicios",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede obtener todos los servicios del sistema<br/>" +
-                         "• <strong>BARBER:</strong> Puede obtener todos los servicios del sistema<br/>" +
-                         "• <strong>CLIENT:</strong> Puede obtener todos los servicios del sistema"
+                         "• <strong>ROLE_ADMIN:</strong> Puede obtener todos los servicios del sistema<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Puede obtener todos los servicios del sistema<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Puede obtener todos los servicios del sistema"
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
@@ -138,9 +138,9 @@ public class ServiceController {
      * Obtiene todos los servicios de una barbería específica
      *
      * Permisos de acceso:
-     * - ADMIN: Puede obtener servicios de cualquier barbería
-     * - BARBER: Puede obtener servicios de cualquier barbería
-     * - CLIENT: Puede obtener servicios de cualquier barbería
+     * - ROLE_ADMIN: Puede obtener servicios de cualquier barbería
+     * - ROLE_BARBER: Puede obtener servicios de cualquier barbería
+     * - ROLE_CLIENT: Puede obtener servicios de cualquier barbería
      *
      * @param barbershopId ID de la barbería
      * @param httpRequest Request HTTP para extraer el token de autenticación
@@ -150,9 +150,9 @@ public class ServiceController {
     @Operation(
             summary = "Obtener servicios por barbería",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede obtener servicios de cualquier barbería<br/>" +
-                         "• <strong>BARBER:</strong> Puede obtener servicios de cualquier barbería<br/>" +
-                         "• <strong>CLIENT:</strong> Puede obtener servicios de cualquier barbería"
+                         "• <strong>ROLE_ADMIN:</strong> Puede obtener servicios de cualquier barbería<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Puede obtener servicios de cualquier barbería<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Puede obtener servicios de cualquier barbería"
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
@@ -179,9 +179,9 @@ public class ServiceController {
      * Busca servicios que contengan el nombre especificado
      *
      * Permisos de acceso:
-     * - ADMIN: Puede buscar servicios por nombre en todo el sistema
-     * - BARBER: Puede buscar servicios por nombre en todo el sistema
-     * - CLIENT: Puede buscar servicios por nombre en todo el sistema
+     * - ROLE_ADMIN: Puede buscar servicios por nombre en todo el sistema
+     * - ROLE_BARBER: Puede buscar servicios por nombre en todo el sistema
+     * - ROLE_CLIENT: Puede buscar servicios por nombre en todo el sistema
      *
      * @param name Nombre o parte del nombre del servicio a buscar
      * @param httpRequest Request HTTP para extraer el token de autenticación
@@ -191,9 +191,9 @@ public class ServiceController {
     @Operation(
             summary = "Buscar servicios por nombre",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede buscar servicios por nombre en todo el sistema<br/>" +
-                         "• <strong>BARBER:</strong> Puede buscar servicios por nombre en todo el sistema<br/>" +
-                         "• <strong>CLIENT:</strong> Puede buscar servicios por nombre en todo el sistema"
+                         "• <strong>ROLE_ADMIN:</strong> Puede buscar servicios por nombre en todo el sistema<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Puede buscar servicios por nombre en todo el sistema<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Puede buscar servicios por nombre en todo el sistema"
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
@@ -311,9 +311,9 @@ public class ServiceController {
      * Actualiza un servicio existente
      *
      * Permisos de acceso:
-     * - ADMIN: Puede actualizar cualquier servicio
-     * - BARBER: Solo puede actualizar servicios de su propia barbería
-     * - CLIENT: Acceso denegado
+     * - ROLE_ADMIN: Puede actualizar cualquier servicio
+     * - ROLE_BARBER: Solo puede actualizar servicios de su propia barbería
+     * - ROLE_CLIENT: Acceso denegado
      *
      * @param id ID del servicio a actualizar
      * @param request Datos actualizados del servicio
@@ -323,9 +323,9 @@ public class ServiceController {
     @Operation(
             summary = "Actualizar servicio",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede actualizar cualquier servicio<br/>" +
-                         "• <strong>BARBER:</strong> Solo puede actualizar servicios de su propia barbería<br/>" +
-                         "• <strong>CLIENT:</strong> Acceso denegado"
+                         "• <strong>ROLE_ADMIN:</strong> Puede actualizar cualquier servicio<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Solo puede actualizar servicios de su propia barbería<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Acceso denegado"
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
@@ -345,9 +345,9 @@ public class ServiceController {
      * Elimina un servicio (soft delete)
      *
      * Permisos de acceso:
-     * - ADMIN: Puede eliminar cualquier servicio
-     * - BARBER: Solo puede eliminar servicios de su propia barbería
-     * - CLIENT: Acceso denegado
+     * - ROLE_ADMIN: Puede eliminar cualquier servicio
+     * - ROLE_BARBER: Solo puede eliminar servicios de su propia barbería
+     * - ROLE_CLIENT: Acceso denegado
      *
      * @param id ID del servicio a eliminar
      * @return Respuesta confirmando la eliminación del servicio
@@ -356,9 +356,9 @@ public class ServiceController {
     @Operation(
             summary = "Eliminar servicio",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede eliminar cualquier servicio<br/>" +
-                         "• <strong>BARBER:</strong> Solo puede eliminar servicios de su propia barbería<br/>" +
-                         "• <strong>CLIENT:</strong> Acceso denegado"
+                         "• <strong>ROLE_ADMIN:</strong> Puede eliminar cualquier servicio<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Solo puede eliminar servicios de su propia barbería<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Acceso denegado"
     )
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {

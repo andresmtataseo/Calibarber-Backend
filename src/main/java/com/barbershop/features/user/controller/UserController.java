@@ -34,9 +34,9 @@ public class UserController {
      * Crea un nuevo usuario en el sistema con los datos proporcionados.
      *
      * Permisos de acceso:
-     * - ADMIN: Puede crear cualquier usuario con cualquier rol
-     * - BARBER: No tiene permisos para crear usuarios
-     * - CLIENT: No tiene permisos para crear usuarios
+     * - ROLE_ADMIN: Puede crear cualquier usuario con cualquier rol
+     * - ROLE_BARBER: No tiene permisos para crear usuarios
+     * - ROLE_CLIENT: No tiene permisos para crear usuarios
      *
      * @param createDto Datos del usuario a crear
      * @param request Request HTTP para extraer el token de autenticación
@@ -45,9 +45,9 @@ public class UserController {
     @Operation(
             summary = "Crear nuevo usuario",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede crear cualquier usuario con cualquier rol<br/>" +
-                         "• <strong>BARBER:</strong> No tiene permisos para crear usuarios<br/>" +
-                         "• <strong>CLIENT:</strong> No tiene permisos para crear usuarios",
+                         "• <strong>ROLE_ADMIN:</strong> Puede crear cualquier usuario con cualquier rol<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> No tiene permisos para crear usuarios<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> No tiene permisos para crear usuarios",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -79,9 +79,9 @@ public class UserController {
      * Obtiene una lista paginada de usuarios o un usuario específico por ID.
      *
      * Permisos de acceso:
-     * - ADMIN: Puede obtener cualquier usuario o lista completa de usuarios
-     * - BARBER: Solo puede obtener su propia información de usuario
-     * - CLIENT: Solo puede obtener su propia información de usuario
+     * - ROLE_ADMIN: Puede obtener cualquier usuario o lista completa de usuarios
+     * - ROLE_BARBER: Solo puede obtener su propia información de usuario
+     * - ROLE_CLIENT: Solo puede obtener su propia información de usuario
      *
      * @param id ID del usuario específico (opcional)
      * @param page Número de página (0-indexed)
@@ -94,9 +94,9 @@ public class UserController {
     @Operation(
             summary = "Obtener usuarios",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede obtener cualquier usuario o lista completa de usuarios<br/>" +
-                         "• <strong>BARBER:</strong> Solo puede obtener su propia información de usuario<br/>" +
-                         "• <strong>CLIENT:</strong> Solo puede obtener su propia información de usuario",
+                         "• <strong>ROLE_ADMIN:</strong> Puede obtener cualquier usuario o lista completa de usuarios<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Solo puede obtener su propia información de usuario<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Solo puede obtener su propia información de usuario",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -150,9 +150,9 @@ public class UserController {
      * Actualiza los datos de un usuario existente en el sistema.
      *
      * Permisos de acceso:
-     * - ADMIN: Puede actualizar cualquier usuario
-     * - BARBER: Solo puede actualizar su propia información de usuario
-     * - CLIENT: Solo puede actualizar su propia información de usuario
+     * - ROLE_ADMIN: Puede actualizar cualquier usuario
+     * - ROLE_BARBER: Solo puede actualizar su propia información de usuario
+     * - ROLE_CLIENT: Solo puede actualizar su propia información de usuario
      *
      * @param id ID del usuario a actualizar
      * @param updateDto Datos actualizados del usuario
@@ -162,9 +162,9 @@ public class UserController {
     @Operation(
             summary = "Actualizar usuario",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede actualizar cualquier usuario<br/>" +
-                         "• <strong>BARBER:</strong> Solo puede actualizar su propia información de usuario<br/>" +
-                         "• <strong>CLIENT:</strong> Solo puede actualizar su propia información de usuario",
+                         "• <strong>ROLE_ADMIN:</strong> Puede actualizar cualquier usuario<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> Solo puede actualizar su propia información de usuario<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> Solo puede actualizar su propia información de usuario",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -197,9 +197,9 @@ public class UserController {
      * Marca un usuario como eliminado sin borrarlo físicamente de la base de datos.
      *
      * Permisos de acceso:
-     * - ADMIN: Puede eliminar cualquier usuario del sistema
-     * - BARBER: No tiene permisos para eliminar usuarios
-     * - CLIENT: No tiene permisos para eliminar usuarios
+     * - ROLE_ADMIN: Puede eliminar cualquier usuario del sistema
+     * - ROLE_BARBER: No tiene permisos para eliminar usuarios
+     * - ROLE_CLIENT: No tiene permisos para eliminar usuarios
      *
      * @param id ID del usuario a eliminar
      * @param request Request HTTP para extraer el token de autenticación
@@ -208,9 +208,9 @@ public class UserController {
     @Operation(
             summary = "Eliminar usuario (soft delete)",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede eliminar cualquier usuario del sistema<br/>" +
-                         "• <strong>BARBER:</strong> No tiene permisos para eliminar usuarios<br/>" +
-                         "• <strong>CLIENT:</strong> No tiene permisos para eliminar usuarios",
+                         "• <strong>ROLE_ADMIN:</strong> Puede eliminar cualquier usuario del sistema<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> No tiene permisos para eliminar usuarios<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> No tiene permisos para eliminar usuarios",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -241,9 +241,9 @@ public class UserController {
      * Restaura un usuario que fue eliminado previamente mediante soft delete.
      *
      * Permisos de acceso:
-     * - ADMIN: Puede restaurar cualquier usuario eliminado del sistema
-     * - BARBER: No tiene permisos para restaurar usuarios
-     * - CLIENT: No tiene permisos para restaurar usuarios
+     * - ROLE_ADMIN: Puede restaurar cualquier usuario eliminado del sistema
+     * - ROLE_BARBER: No tiene permisos para restaurar usuarios
+     * - ROLE_CLIENT: No tiene permisos para restaurar usuarios
      *
      * @param id ID del usuario a restaurar
      * @param request Request HTTP para extraer el token de autenticación
@@ -252,9 +252,9 @@ public class UserController {
     @Operation(
             summary = "Restaurar usuario eliminado",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede restaurar cualquier usuario eliminado del sistema<br/>" +
-                         "• <strong>BARBER:</strong> No tiene permisos para restaurar usuarios<br/>" +
-                         "• <strong>CLIENT:</strong> No tiene permisos para restaurar usuarios",
+                         "• <strong>ROLE_ADMIN:</strong> Puede restaurar cualquier usuario eliminado del sistema<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> No tiene permisos para restaurar usuarios<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> No tiene permisos para restaurar usuarios",
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -286,9 +286,9 @@ public class UserController {
      * Obtiene una lista paginada de usuarios que han sido eliminados mediante soft delete.
      *
      * Permisos de acceso:
-     * - ADMIN: Puede obtener la lista completa de usuarios eliminados
-     * - BARBER: No tiene permisos para ver usuarios eliminados
-     * - CLIENT: No tiene permisos para ver usuarios eliminados
+     * - ROLE_ADMIN: Puede obtener la lista completa de usuarios eliminados
+     * - ROLE_BARBER: No tiene permisos para ver usuarios eliminados
+     * - ROLE_CLIENT: No tiene permisos para ver usuarios eliminados
      *
      * @param page Número de página (0-indexed)
      * @param size Tamaño de página
@@ -300,9 +300,9 @@ public class UserController {
     @Operation(
             summary = "Obtener usuarios eliminados",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede obtener la lista completa de usuarios eliminados<br/>" +
-                         "• <strong>BARBER:</strong> No tiene permisos para ver usuarios eliminados<br/>" +
-                         "• <strong>CLIENT:</strong> No tiene permisos para ver usuarios eliminados",
+                         "• <strong>ROLE_ADMIN:</strong> Puede obtener la lista completa de usuarios eliminados<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> No tiene permisos para ver usuarios eliminados<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> No tiene permisos para ver usuarios eliminados",
             responses = {
                     @ApiResponse(
                             responseCode = "200",

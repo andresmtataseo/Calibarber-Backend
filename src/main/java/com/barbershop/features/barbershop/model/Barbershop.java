@@ -20,8 +20,8 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "barbershops")
-@ToString(exclude = {"barbers", "services"})
-@EqualsAndHashCode(exclude = {"barbers", "services"})
+@ToString(exclude = {"barbers", "services", "operatingHours"})
+@EqualsAndHashCode(exclude = {"barbers", "services", "operatingHours"})
 public class Barbershop implements Serializable {
 
     @Id
@@ -41,9 +41,6 @@ public class Barbershop implements Serializable {
     @Column(name = "email", length = 100)
     private String email;
 
-    @Column(name = "operating_hours", columnDefinition = "JSON")
-    private String operatingHours;
-
     @Column(name = "logo_url")
     private String logoUrl;
 
@@ -55,6 +52,7 @@ public class Barbershop implements Serializable {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
@@ -67,4 +65,7 @@ public class Barbershop implements Serializable {
 
     @OneToMany(mappedBy = "barbershop", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<com.barbershop.features.service.model.Service> services;
+
+    @OneToMany(mappedBy = "barbershop", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<BarbershopOperatingHours> operatingHours;
 }

@@ -45,7 +45,6 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede crear barberos en cualquier barbería
-     * - BARBERSHOP_OWNER: Puede crear barberos en sus propias barberías
      * - BARBER: No tiene permisos para crear otros barberos
      * - CLIENT: No tiene permisos para crear barberos
      *
@@ -57,7 +56,6 @@ public class BarberController {
             summary = "Crear nuevo barbero",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede crear barberos en cualquier barbería<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede crear barberos en sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> No tiene permisos para crear otros barberos<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para crear barberos",
             responses = {
@@ -94,7 +92,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede obtener información de cualquier barbero
-     * - BARBERSHOP_OWNER: Puede obtener barberos de sus propias barberías
+
      * - BARBER: Solo puede obtener su propia información cuando se especifica ID
      * - CLIENT: Puede obtener información básica de barberos para agendar citas
      *
@@ -112,7 +110,6 @@ public class BarberController {
             summary = "Obtener barberos",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede obtener información de cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Solo puede obtener su propia información cuando se especifica ID<br/>" +
                          "• <strong>CLIENT:</strong> Puede obtener información básica de barberos para agendar citas",
             responses = {
@@ -192,7 +189,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede actualizar cualquier barbero
-     * - BARBERSHOP_OWNER: Puede actualizar barberos de sus propias barberías
+
      * - BARBER: No tiene permisos para actualizar otros barberos
      * - CLIENT: No tiene permisos para actualizar barberos
      *
@@ -205,7 +202,6 @@ public class BarberController {
             summary = "Actualizar barbero",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede actualizar cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede actualizar barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> No tiene permisos para actualizar otros barberos<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para actualizar barberos",
             responses = {
@@ -243,7 +239,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede eliminar cualquier barbero
-     * - BARBERSHOP_OWNER: Puede eliminar barberos de sus propias barberías
+
      * - BARBER: No tiene permisos para eliminar otros barberos
      * - CLIENT: No tiene permisos para eliminar barberos
      *
@@ -255,7 +251,6 @@ public class BarberController {
             summary = "Eliminar barbero (soft delete)",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede eliminar cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede eliminar barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> No tiene permisos para eliminar otros barberos<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para eliminar barberos",
             responses = {
@@ -291,7 +286,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede restaurar cualquier barbero eliminado
-     * - BARBERSHOP_OWNER: Puede restaurar barberos eliminados de sus propias barberías
+
      * - BARBER: No tiene permisos para restaurar barberos
      * - CLIENT: No tiene permisos para restaurar barberos
      *
@@ -303,7 +298,6 @@ public class BarberController {
             summary = "Restaurar barbero eliminado",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede restaurar cualquier barbero eliminado<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede restaurar barberos eliminados de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> No tiene permisos para restaurar barberos<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para restaurar barberos",
             responses = {
@@ -340,7 +334,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede obtener todos los barberos eliminados del sistema
-     * - BARBERSHOP_OWNER: Puede obtener barberos eliminados de sus propias barberías
+
      * - BARBER: No tiene permisos para ver barberos eliminados
      * - CLIENT: No tiene permisos para ver barberos eliminados
      *
@@ -355,7 +349,6 @@ public class BarberController {
             summary = "Obtener barberos eliminados",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede obtener todos los barberos eliminados del sistema<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener barberos eliminados de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> No tiene permisos para ver barberos eliminados<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para ver barberos eliminados",
             responses = {
@@ -396,7 +389,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede crear disponibilidad para cualquier barbero
-     * - BARBERSHOP_OWNER: Puede crear disponibilidad para barberos de sus propias barberías
+
      * - BARBER: Solo puede crear su propia disponibilidad
      * - CLIENT: No tiene permisos para crear disponibilidades
      *
@@ -408,7 +401,6 @@ public class BarberController {
             summary = "Crear disponibilidad de barbero",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede crear disponibilidad para cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede crear disponibilidad para barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Solo puede crear su propia disponibilidad<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para crear disponibilidades",
             responses = {
@@ -445,7 +437,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede obtener la disponibilidad de cualquier barbero
-     * - BARBERSHOP_OWNER: Puede obtener la disponibilidad de barberos de sus propias barberías
+
      * - BARBER: Puede obtener su propia disponibilidad y la de otros barberos para coordinación
      * - CLIENT: Puede obtener la disponibilidad de cualquier barbero para agendar citas
      *
@@ -458,7 +450,6 @@ public class BarberController {
             summary = "Obtener disponibilidades de barbero",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede obtener la disponibilidad de cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener la disponibilidad de barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Puede obtener su propia disponibilidad y la de otros barberos para coordinación<br/>" +
                          "• <strong>CLIENT:</strong> Puede obtener la disponibilidad de cualquier barbero para agendar citas",
             responses = {
@@ -505,7 +496,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede obtener la disponibilidad paginada de cualquier barbero
-     * - BARBERSHOP_OWNER: Puede obtener la disponibilidad paginada de barberos de sus propias barberías
+
      * - BARBER: Puede obtener su propia disponibilidad paginada y la de otros barberos para coordinación
      * - CLIENT: Puede obtener la disponibilidad paginada de cualquier barbero para agendar citas
      *
@@ -521,7 +512,6 @@ public class BarberController {
             summary = "Obtener disponibilidades paginadas de barbero",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede obtener la disponibilidad paginada de cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener la disponibilidad paginada de barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Puede obtener su propia disponibilidad paginada y la de otros barberos para coordinación<br/>" +
                          "• <strong>CLIENT:</strong> Puede obtener la disponibilidad paginada de cualquier barbero para agendar citas",
             responses = {
@@ -563,7 +553,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede actualizar la disponibilidad de cualquier barbero
-     * - BARBERSHOP_OWNER: Puede actualizar la disponibilidad de barberos de sus propias barberías
+
      * - BARBER: Solo puede actualizar su propia disponibilidad
      * - CLIENT: No tiene permisos para actualizar disponibilidades
      *
@@ -576,7 +566,6 @@ public class BarberController {
             summary = "Actualizar disponibilidad",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede actualizar la disponibilidad de cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede actualizar la disponibilidad de barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Solo puede actualizar su propia disponibilidad<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para actualizar disponibilidades",
             responses = {
@@ -615,7 +604,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede eliminar la disponibilidad de cualquier barbero
-     * - BARBERSHOP_OWNER: Puede eliminar la disponibilidad de barberos de sus propias barberías
+
      * - BARBER: Solo puede eliminar su propia disponibilidad
      * - CLIENT: No tiene permisos para eliminar disponibilidades
      *
@@ -628,7 +617,6 @@ public class BarberController {
             summary = "Eliminar disponibilidad",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede eliminar la disponibilidad de cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede eliminar la disponibilidad de barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Solo puede eliminar su propia disponibilidad<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para eliminar disponibilidades",
             responses = {
@@ -664,7 +652,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede alternar la disponibilidad de cualquier barbero
-     * - BARBERSHOP_OWNER: Puede alternar la disponibilidad de barberos de sus propias barberías
+
      * - BARBER: Solo puede alternar su propia disponibilidad
      * - CLIENT: No tiene permisos para alternar disponibilidades
      *
@@ -677,7 +665,6 @@ public class BarberController {
             summary = "Habilitar/Deshabilitar disponibilidad",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede alternar la disponibilidad de cualquier barbero<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede alternar la disponibilidad de barberos de sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Solo puede alternar su propia disponibilidad<br/>" +
                          "• <strong>CLIENT:</strong> No tiene permisos para alternar disponibilidades",
             responses = {
@@ -716,7 +703,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede buscar barberos disponibles en cualquier barbería
-     * - BARBERSHOP_OWNER: Puede buscar barberos disponibles en sus propias barberías
+
      * - BARBER: Puede buscar barberos disponibles para coordinación
      * - CLIENT: Puede buscar barberos disponibles para agendar citas
      *
@@ -730,7 +717,6 @@ public class BarberController {
             summary = "Buscar barberos disponibles",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede buscar barberos disponibles en cualquier barbería<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede buscar barberos disponibles en sus propias barberías<br/>" +
                          "• <strong>BARBER:</strong> Puede buscar barberos disponibles para coordinación<br/>" +
                          "• <strong>CLIENT:</strong> Puede buscar barberos disponibles para agendar citas",
             responses = {
@@ -769,7 +755,7 @@ public class BarberController {
      *
      * Permisos de acceso:
      * - ADMIN: Puede obtener disponibilidades de cualquier día del sistema
-     * - BARBERSHOP_OWNER: Puede obtener disponibilidades de sus propias barberías para el día especificado
+
      * - BARBER: Puede obtener disponibilidades del día para coordinación
      * - CLIENT: Puede obtener disponibilidades del día para agendar citas
      *
@@ -781,7 +767,6 @@ public class BarberController {
             summary = "Obtener disponibilidades por día",
             description = "<strong>Permisos:</strong><br/>" +
                          "• <strong>ADMIN:</strong> Puede obtener disponibilidades de cualquier día del sistema<br/>" +
-                         "• <strong>BARBERSHOP_OWNER:</strong> Puede obtener disponibilidades de sus propias barberías para el día especificado<br/>" +
                          "• <strong>BARBER:</strong> Puede obtener disponibilidades del día para coordinación<br/>" +
                          "• <strong>CLIENT:</strong> Puede obtener disponibilidades del día para agendar citas",
             responses = {

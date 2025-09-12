@@ -440,12 +440,12 @@ public class PaymentService {
         String role = jwtService.extractRole(token);
         
         // Los administradores pueden crear pagos para cualquier cita
-        if (RoleEnum.ADMIN.name().equals(role)) {
+        if (RoleEnum.ROLE_ADMIN.name().equals(role)) {
             return;
         }
         
         // Los clientes solo pueden crear pagos para sus propias citas
-        if (RoleEnum.CLIENT.name().equals(role)) {
+        if (RoleEnum.ROLE_CLIENT.name().equals(role)) {
             Appointment appointment = appointmentRepository.findById(appointmentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Cita no encontrada"));
             
@@ -459,7 +459,7 @@ public class PaymentService {
         }
         
         // Los barberos pueden crear pagos para citas que ellos atienden
-        if (RoleEnum.BARBER.name().equals(role)) {
+        if (RoleEnum.ROLE_BARBER.name().equals(role)) {
             Appointment appointment = appointmentRepository.findById(appointmentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Cita no encontrada"));
             
@@ -480,7 +480,7 @@ public class PaymentService {
         String role = jwtService.extractRole(token);
         
         // Los administradores pueden ver cualquier pago
-        if (RoleEnum.ADMIN.name().equals(role)) {
+        if (RoleEnum.ROLE_ADMIN.name().equals(role)) {
             return;
         }
         
@@ -488,7 +488,7 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         
         // Los clientes solo pueden ver pagos de sus propias citas
-        if (RoleEnum.CLIENT.name().equals(role)) {
+        if (RoleEnum.ROLE_CLIENT.name().equals(role)) {
             if (!payment.getAppointment().getClientId().equals(user.getUserId())) {
                 throw new AccessDeniedException("No tienes permisos para ver este pago");
             }
@@ -496,7 +496,7 @@ public class PaymentService {
         }
         
         // Los barberos pueden ver pagos de citas que ellos atienden
-        if (RoleEnum.BARBER.name().equals(role)) {
+        if (RoleEnum.ROLE_BARBER.name().equals(role)) {
             if (!payment.getAppointment().getBarberId().equals(user.getUserId())) {
                 throw new AccessDeniedException("No tienes permisos para ver este pago");
             }
@@ -510,12 +510,12 @@ public class PaymentService {
         String role = jwtService.extractRole(token);
         
         // Solo administradores y barberos pueden actualizar pagos
-        if (!RoleEnum.ADMIN.name().equals(role) && !RoleEnum.BARBER.name().equals(role)) {
+        if (!RoleEnum.ROLE_ADMIN.name().equals(role) && !RoleEnum.ROLE_BARBER.name().equals(role)) {
             throw new AccessDeniedException("No tienes permisos para actualizar pagos");
         }
         
         // Los barberos solo pueden actualizar pagos de sus propias citas
-        if (RoleEnum.BARBER.name().equals(role)) {
+        if (RoleEnum.ROLE_BARBER.name().equals(role)) {
             String username = jwtService.getUsernameFromToken(token);
             User barber = userRepository.findByEmail(username)
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
@@ -531,7 +531,7 @@ public class PaymentService {
         String role = jwtService.extractRole(token);
         
         // Los administradores pueden acceder a cualquier cita
-        if (RoleEnum.ADMIN.name().equals(role)) {
+        if (RoleEnum.ROLE_ADMIN.name().equals(role)) {
             return;
         }
         
@@ -539,7 +539,7 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         
         // Los clientes solo pueden acceder a sus propias citas
-        if (RoleEnum.CLIENT.name().equals(role)) {
+        if (RoleEnum.ROLE_CLIENT.name().equals(role)) {
             if (!appointment.getClientId().equals(user.getUserId())) {
                 throw new AccessDeniedException("No tienes permisos para acceder a esta cita");
             }
@@ -547,7 +547,7 @@ public class PaymentService {
         }
         
         // Los barberos pueden acceder a citas que ellos atienden
-        if (RoleEnum.BARBER.name().equals(role)) {
+        if (RoleEnum.ROLE_BARBER.name().equals(role)) {
             if (!appointment.getBarberId().equals(user.getUserId())) {
                 throw new AccessDeniedException("No tienes permisos para acceder a esta cita");
             }
@@ -559,7 +559,7 @@ public class PaymentService {
 
     private void validateAdminAccess(String token) {
         String role = jwtService.extractRole(token);
-        if (!RoleEnum.ADMIN.name().equals(role)) {
+        if (!RoleEnum.ROLE_ADMIN.name().equals(role)) {
             throw new AccessDeniedException("Se requieren permisos de administrador para esta operación");
         }
     }
@@ -569,12 +569,12 @@ public class PaymentService {
         String role = jwtService.extractRole(token);
         
         // Los administradores pueden acceder a cualquier cliente
-        if (RoleEnum.ADMIN.name().equals(role)) {
+        if (RoleEnum.ROLE_ADMIN.name().equals(role)) {
             return;
         }
         
         // Los clientes solo pueden acceder a su propia información
-        if (RoleEnum.CLIENT.name().equals(role)) {
+        if (RoleEnum.ROLE_CLIENT.name().equals(role)) {
             User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
             

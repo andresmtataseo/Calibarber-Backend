@@ -2,7 +2,7 @@ package com.barbershop.common.util;
 
 public class ApiConstants {
     // Auth API URLs
-    public static final String AUTH_API_BASE_URL = "/auth";
+    public static final String AUTH_API_BASE_URL = "api/v1/auth";
     public static final String SIGN_IN_URL = "/sign-in";
     public static final String SIGN_UP_URL = "/sign-up";
     public static final String CHECK_AUTH_URL = "/check-auth";

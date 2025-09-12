@@ -18,6 +18,7 @@ public interface BarbershopMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "barbers", ignore = true)
     @Mapping(target = "services", ignore = true)
+    @Mapping(target = "operatingHours", ignore = true)
     Barbershop toEntity(BarbershopCreateDto dto);
 
     @Mapping(target = "barbershopId", ignore = true)
@@ -25,8 +26,10 @@ public interface BarbershopMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "barbers", ignore = true)
     @Mapping(target = "services", ignore = true)
+    @Mapping(target = "operatingHours", ignore = true)
     void updateEntityFromDto(BarbershopUpdateDto dto, @MappingTarget Barbershop entity);
 
+    @Mapping(target = "operatingHours", ignore = true)
     BarbershopResponseDto toResponseDto(Barbershop entity);
 
     @IterableMapping(elementTargetType = BarbershopResponseDto.class)

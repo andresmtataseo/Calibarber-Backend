@@ -12,8 +12,11 @@ import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.repository.UserRepository;
 import com.barbershop.features.user.model.User;
 import com.barbershop.common.service.EmailService;
+import com.barbershop.common.service.EmailRetryService;
+import com.barbershop.common.exception.BusinessLogicException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,6 +42,7 @@ public class AuthService {
     private final AuthUtils authUtils;
     private final AuthProperties authProperties;
     private final EmailService emailService;
+    private final EmailRetryService emailRetryService;
 
     /**
      * Autentica un usuario con email y contraseña
@@ -111,11 +115,24 @@ public class AuthService {
         User user = authUserMapper.toUser(request);
         user.setEmail(normalizedEmail); // Asegurar que el email se guarde normalizado
         user.setPasswordHash(passwordEncoder.encode(user.getPassword()));
-        user.setRole(RoleEnum.CLIENT);
+        user.setRole(RoleEnum.ROLE_CLIENT);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         
-        user = userRepository.save(user);
+        try {
+            user = userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            log.error("Error de integridad de datos al registrar usuario: {}", e.getMessage());
+            String message = "No se pudo registrar el usuario";
+            
+            if (e.getMessage().contains("email")) {
+                message = "El email ya está registrado en el sistema";
+            } else if (e.getMessage().contains("phone_number")) {
+                message = "El número de teléfono ya está registrado en el sistema";
+            }
+            
+            throw new BusinessLogicException(message);
+        }
         
         // Generar token
         String token = jwtService.getToken(user);
@@ -124,11 +141,18 @@ public class AuthService {
         
         log.debug("Usuario registrado exitosamente: {}", request.getEmail());
         
-        // Enviar email de bienvenida
+        // Enviar email de bienvenida con reintentos
         try {
-            emailService.enviarEmailBienvenida(user.getEmail(), user.getFirstName());
+            emailRetryService.enviarEmailBienvenidaConReintentos(user.getEmail(), user.getFirstName());
+        } catch (jakarta.mail.MessagingException e) {
+            log.error("Error de mensajería al enviar email de bienvenida a {}: {}", user.getEmail(), e.getMessage());
+            // El usuario se crea exitosamente aunque falle el email
+        } catch (org.springframework.mail.MailException e) {
+            log.error("Error del servidor de correo al enviar email de bienvenida a {}: {}", user.getEmail(), e.getMessage());
+            // El usuario se crea exitosamente aunque falle el email
         } catch (Exception e) {
-            log.error("Error al enviar email de bienvenida a {}: {}", user.getEmail(), e.getMessage());
+            emailRetryService.handleEmailFailure(e, user.getEmail());
+            // El usuario se crea exitosamente aunque falle el email
         }
         
         return AuthResponseDto.builder()
@@ -225,14 +249,19 @@ public class AuthService {
         
         log.info("Token de restablecimiento generado para usuario: {}", email);
         
-        // Enviar token por correo electrónico
+        // Enviar token por correo electrónico con reintentos
         try {
             int tiempoExpiracionMinutos = (int) (authProperties.getResetToken().getExpirationTime() / 1000 / 60);
-            emailService.enviarTokenRecuperacion(user.getEmail(), user.getFirstName(), token, tiempoExpiracionMinutos);
-            log.info("Correo de recuperación enviado exitosamente a: {}", email);
+            emailRetryService.enviarTokenRecuperacionConReintentos(user.getEmail(), user.getFirstName(), token, tiempoExpiracionMinutos);
             
+        } catch (jakarta.mail.MessagingException e) {
+            log.error("Error de mensajería al enviar correo de recuperación a {}: {}", email, e.getMessage());
+            // No lanzamos excepción para no revelar si el email existe o no
+        } catch (org.springframework.mail.MailException e) {
+            log.error("Error del servidor de correo al enviar correo de recuperación a {}: {}", email, e.getMessage());
+            // No lanzamos excepción para no revelar si el email existe o no
         } catch (Exception e) {
-            log.error("Error al enviar correo de recuperación a {}: {}", email, e.getMessage());
+            emailRetryService.handleEmailFailure(e, email);
             // No lanzamos excepción para no revelar si el email existe o no
             // El token se guarda de todas formas para que funcione si el usuario lo tiene
         }

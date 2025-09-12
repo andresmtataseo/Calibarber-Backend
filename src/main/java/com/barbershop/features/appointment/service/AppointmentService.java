@@ -14,6 +14,7 @@ import com.barbershop.features.auth.security.JwtService;
 import com.barbershop.features.barber.repository.BarberRepository;
 import com.barbershop.features.service.repository.ServiceRepository;
 import com.barbershop.features.user.repository.UserRepository;
+import com.barbershop.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -408,12 +409,12 @@ public class AppointmentService {
         String userId = jwtService.getUsernameFromToken(token);
         
         // Los clientes solo pueden crear citas para sí mismos
-        if ("CLIENT".equals(userRole) && !userId.equals(clientId)) {
+        if ("ROLE_CLIENT".equals(userRole) && !userId.equals(clientId)) {
             throw new AccessDeniedException("Los clientes solo pueden crear citas para sí mismos");
         }
         
         // Administradores y barberos pueden crear citas para cualquier cliente
-        if (!"ADMIN".equals(userRole) && !"BARBER".equals(userRole) && !"CLIENT".equals(userRole)) {
+        if (!"ROLE_ADMIN".equals(userRole) && !"ROLE_BARBER".equals(userRole) && !"ROLE_CLIENT".equals(userRole)) {
             throw new AccessDeniedException("No tienes permisos para crear citas");
         }
     }
@@ -423,17 +424,17 @@ public class AppointmentService {
         String userId = jwtService.getUsernameFromToken(token);
         
         // Administradores pueden ver todas las citas
-        if ("ADMIN".equals(userRole)) {
+        if ("ROLE_ADMIN".equals(userRole)) {
             return;
         }
         
         // Clientes solo pueden ver sus propias citas
-        if ("CLIENT".equals(userRole) && !userId.equals(appointment.getClientId())) {
+        if ("ROLE_CLIENT".equals(userRole) && !userId.equals(appointment.getClientId())) {
             throw new AccessDeniedException("No tienes permisos para ver esta cita");
         }
         
         // Barberos solo pueden ver citas asignadas a ellos
-        if ("BARBER".equals(userRole) && !userId.equals(appointment.getBarberId())) {
+        if ("ROLE_BARBER".equals(userRole) && !userId.equals(appointment.getBarberId())) {
             throw new AccessDeniedException("No tienes permisos para ver esta cita");
         }
     }
@@ -443,17 +444,17 @@ public class AppointmentService {
         String userId = jwtService.getUsernameFromToken(token);
         
         // Administradores pueden modificar todas las citas
-        if ("ADMIN".equals(userRole)) {
+        if ("ROLE_ADMIN".equals(userRole)) {
             return;
         }
         
         // Clientes solo pueden modificar sus propias citas
-        if ("CLIENT".equals(userRole) && !userId.equals(appointment.getClientId())) {
+        if ("ROLE_CLIENT".equals(userRole) && !userId.equals(appointment.getClientId())) {
             throw new AccessDeniedException("No tienes permisos para modificar esta cita");
         }
         
         // Barberos solo pueden modificar citas asignadas a ellos
-        if ("BARBER".equals(userRole) && !userId.equals(appointment.getBarberId())) {
+        if ("ROLE_BARBER".equals(userRole) && !userId.equals(appointment.getBarberId())) {
             throw new AccessDeniedException("No tienes permisos para modificar esta cita");
         }
     }
@@ -463,17 +464,17 @@ public class AppointmentService {
         String userId = jwtService.getUsernameFromToken(token);
         
         // Administradores pueden acceder a cualquier cliente
-        if ("ADMIN".equals(userRole)) {
+        if ("ROLE_ADMIN".equals(userRole)) {
             return;
         }
         
         // Clientes solo pueden acceder a sus propios datos
-        if ("CLIENT".equals(userRole) && !userId.equals(clientId)) {
+        if ("ROLE_CLIENT".equals(userRole) && !userId.equals(clientId)) {
             throw new AccessDeniedException("No tienes permisos para acceder a las citas de este cliente");
         }
         
         // Barberos no pueden acceder directamente a citas por cliente
-        if ("BARBER".equals(userRole)) {
+        if ("ROLE_BARBER".equals(userRole)) {
             throw new AccessDeniedException("Los barberos no pueden filtrar citas por cliente");
         }
     }
@@ -483,17 +484,17 @@ public class AppointmentService {
         String userId = jwtService.getUsernameFromToken(token);
         
         // Administradores pueden acceder a cualquier barbero
-        if ("ADMIN".equals(userRole)) {
+        if ("ROLE_ADMIN".equals(userRole)) {
             return;
         }
         
         // Barberos solo pueden acceder a sus propias citas
-        if ("BARBER".equals(userRole) && !userId.equals(barberId)) {
+        if ("ROLE_BARBER".equals(userRole) && !userId.equals(barberId)) {
             throw new AccessDeniedException("No tienes permisos para acceder a las citas de este barbero");
         }
         
         // Clientes no pueden acceder directamente a citas por barbero
-        if ("CLIENT".equals(userRole)) {
+        if ("ROLE_CLIENT".equals(userRole)) {
             throw new AccessDeniedException("Los clientes no pueden filtrar citas por barbero");
         }
     }
@@ -503,12 +504,12 @@ public class AppointmentService {
         String userId = jwtService.getUsernameFromToken(token);
         
         // Administradores pueden acceder
-        if ("ADMIN".equals(userRole)) {
+        if ("ROLE_ADMIN".equals(userRole)) {
             return;
         }
         
         // Barberos solo pueden acceder a sus propias citas
-        if ("BARBER".equals(userRole) && userId.equals(barberId)) {
+        if ("ROLE_BARBER".equals(userRole) && userId.equals(barberId)) {
             return;
         }
         
@@ -518,7 +519,7 @@ public class AppointmentService {
     private void validateAdminAccess(String token) {
         String userRole = jwtService.extractRole(token);
         
-        if (!"ADMIN".equals(userRole)) {
+        if (!"ROLE_ADMIN".equals(userRole)) {
             throw new AccessDeniedException("Solo los administradores pueden realizar esta acción");
         }
     }

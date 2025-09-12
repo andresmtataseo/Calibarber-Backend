@@ -4,14 +4,12 @@ import com.barbershop.features.barber.dto.BarberResponseDto;
 import com.barbershop.features.barber.dto.request.CreateBarberRequestDto;
 import com.barbershop.features.barber.dto.request.UpdateBarberRequestDto;
 import com.barbershop.features.barber.model.Barber;
-import com.barbershop.features.user.mapper.UserMapper;
 import org.mapstruct.*;
 
 @Mapper(
     componentModel = "spring",
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
-    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
-    uses = {UserMapper.class}
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
 )
 public interface BarberMapper {
 
@@ -36,7 +34,6 @@ public interface BarberMapper {
     @Mapping(target = "appointments", ignore = true)
     void updateEntity(@MappingTarget Barber entity, UpdateBarberRequestDto dto);
 
-    @Mapping(target = "user", source = "user")
     BarberResponseDto toResponseDto(Barber entity);
 
     @IterableMapping(elementTargetType = BarberResponseDto.class)

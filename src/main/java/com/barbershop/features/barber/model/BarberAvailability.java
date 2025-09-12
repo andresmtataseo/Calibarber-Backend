@@ -1,8 +1,11 @@
 package com.barbershop.features.barber.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -12,6 +15,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "barber_availability")
 @ToString(exclude = {"barber"})
@@ -36,6 +42,7 @@ public class BarberAvailability implements Serializable {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Builder.Default
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable = true;
 

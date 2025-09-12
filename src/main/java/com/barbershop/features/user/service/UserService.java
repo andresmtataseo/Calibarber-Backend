@@ -3,12 +3,13 @@ package com.barbershop.features.user.service;
 import com.barbershop.features.auth.exception.UserAlreadyExistsException;
 import com.barbershop.features.auth.exception.UserNotFoundException;
 import com.barbershop.features.auth.util.AuthUtils;
+import com.barbershop.common.exception.BusinessLogicException;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.barbershop.features.user.dto.UserCreateDto;
 import com.barbershop.features.user.dto.UserResponseDto;
 import com.barbershop.features.user.dto.UserUpdateDto;
 import com.barbershop.features.user.mapper.UserMapper;
 import com.barbershop.features.user.model.User;
-import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.barbershop.shared.util.SecurityUtils;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,21 +50,34 @@ public class UserService {
             throw new UserAlreadyExistsException(normalizedEmail);
         }
         
-        // Crear entidad User
-        User user = User.builder()
-                .email(normalizedEmail)
-                .passwordHash(passwordEncoder.encode(createDto.getPassword()))
-                .firstName(createDto.getFirstName())
-                .lastName(createDto.getLastName())
-                .phoneNumber(createDto.getPhoneNumber())
-                .role(createDto.getRole())
-                .isActive(true)
-                .build();
-        
-        User savedUser = userRepository.save(user);
-        log.info("Usuario creado exitosamente con ID: {}", savedUser.getUserId());
-        
-        return userMapper.toResponseDto(savedUser);
+        try {
+            // Crear entidad User
+            User user = User.builder()
+                    .email(normalizedEmail)
+                    .passwordHash(passwordEncoder.encode(createDto.getPassword()))
+                    .firstName(createDto.getFirstName())
+                    .lastName(createDto.getLastName())
+                    .phoneNumber(createDto.getPhoneNumber())
+                    .role(createDto.getRole())
+                    .isActive(true)
+                    .build();
+            
+            User savedUser = userRepository.save(user);
+            log.info("Usuario creado exitosamente con ID: {}", savedUser.getUserId());
+            
+            return userMapper.toResponseDto(savedUser);
+        } catch (DataIntegrityViolationException e) {
+            log.error("Error de integridad de datos al crear usuario: {}", e.getMessage());
+            String message = "No se pudo crear el usuario";
+            
+            if (e.getMessage().contains("email")) {
+                message = "Ya existe un usuario con este email";
+            } else if (e.getMessage().contains("phone_number")) {
+                message = "Ya existe un usuario con este número de teléfono";
+            }
+            
+            throw new BusinessLogicException(message);
+        }
     }
 
     /**
@@ -121,6 +133,15 @@ public class UserService {
     }
 
     /**
+     * Valida que un usuario existe y está activo (sin restricciones de autorización)
+     * Método útil para validaciones internas entre servicios
+     */
+    @Transactional(readOnly = true)
+    public boolean existsAndActive(String userId) {
+        return userRepository.findByIdAndNotDeleted(userId).isPresent();
+    }
+
+    /**
      * Actualiza un usuario existente
      */
     public UserResponseDto updateUser(String userId, UserUpdateDto updateDto) {
@@ -142,34 +163,47 @@ public class UserService {
             }
         }
         
-        // Actualizar campos
-        if (updateDto.getEmail() != null) {
-            String normalizedEmail = authUtils.normalizeEmail(updateDto.getEmail());
-            user.setEmail(normalizedEmail);
+        try {
+            // Actualizar campos
+            if (updateDto.getEmail() != null) {
+                String normalizedEmail = authUtils.normalizeEmail(updateDto.getEmail());
+                user.setEmail(normalizedEmail);
+            }
+            if (updateDto.getFirstName() != null) {
+                user.setFirstName(updateDto.getFirstName());
+            }
+            if (updateDto.getLastName() != null) {
+                user.setLastName(updateDto.getLastName());
+            }
+            if (updateDto.getPhoneNumber() != null) {
+                user.setPhoneNumber(updateDto.getPhoneNumber());
+            }
+            if (updateDto.getRole() != null) {
+                user.setRole(updateDto.getRole());
+            }
+            if (updateDto.getIsActive() != null) {
+                user.setIsActive(updateDto.getIsActive());
+            }
+            if (updateDto.getProfilePictureUrl() != null) {
+                user.setProfilePictureUrl(updateDto.getProfilePictureUrl());
+            }
+            
+            User updatedUser = userRepository.save(user);
+            log.info("Usuario actualizado exitosamente con ID: {}", updatedUser.getUserId());
+            
+            return userMapper.toResponseDto(updatedUser);
+        } catch (DataIntegrityViolationException e) {
+            log.error("Error de integridad de datos al actualizar usuario: {}", e.getMessage());
+            String message = "No se pudo actualizar el usuario";
+            
+            if (e.getMessage().contains("email")) {
+                message = "Ya existe un usuario con este email";
+            } else if (e.getMessage().contains("phone_number")) {
+                message = "Ya existe un usuario con este número de teléfono";
+            }
+            
+            throw new BusinessLogicException(message);
         }
-        if (updateDto.getFirstName() != null) {
-            user.setFirstName(updateDto.getFirstName());
-        }
-        if (updateDto.getLastName() != null) {
-            user.setLastName(updateDto.getLastName());
-        }
-        if (updateDto.getPhoneNumber() != null) {
-            user.setPhoneNumber(updateDto.getPhoneNumber());
-        }
-        if (updateDto.getRole() != null) {
-            user.setRole(updateDto.getRole());
-        }
-        if (updateDto.getIsActive() != null) {
-            user.setIsActive(updateDto.getIsActive());
-        }
-        if (updateDto.getProfilePictureUrl() != null) {
-            user.setProfilePictureUrl(updateDto.getProfilePictureUrl());
-        }
-        
-        User updatedUser = userRepository.save(user);
-        log.info("Usuario actualizado exitosamente con ID: {}", updatedUser.getUserId());
-        
-        return userMapper.toResponseDto(updatedUser);
     }
 
     /**
@@ -240,73 +274,23 @@ public class UserService {
      * Verifica si el usuario autenticado puede acceder a los datos del usuario especificado
      */
     private boolean canAccessUser(String targetUserId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return false;
-        }
-        
-        // Verificar si es un usuario mock con rol ADMIN (para tests)
-        if (hasRole(authentication, "ROLE_ADMIN") || hasRole(authentication, "ADMIN")) {
+        // Los administradores pueden acceder a cualquier usuario
+        if (SecurityUtils.isCurrentUserAdmin()) {
             return true;
         }
         
-        String currentUserEmail = authentication.getName();
-        
-        // Obtener el usuario autenticado de la base de datos
-        User currentUser = userRepository.findByEmail(currentUserEmail)
-                .orElse(null);
-        
-        if (currentUser != null) {
-            // Los administradores pueden acceder a cualquier usuario
-            if (RoleEnum.ADMIN.equals(currentUser.getRole())) {
-                return true;
-            }
-            
-            // Los usuarios solo pueden acceder a su propia información
-            return currentUser.getUserId().equals(targetUserId);
-        }
-        
-        // Para usuarios mock en tests, verificar si el username coincide con el email del usuario objetivo
-        User targetUser = userRepository.findByIdAndNotDeleted(targetUserId).orElse(null);
-        return targetUser != null && currentUserEmail.equals(targetUser.getEmail());
+        // Los usuarios solo pueden acceder a su propia información
+        String currentUserId = SecurityUtils.getCurrentUserId();
+        return currentUserId != null && currentUserId.equals(targetUserId);
     }
 
     /**
      * Verifica si el usuario autenticado es un administrador
      */
     private boolean isCurrentUserAdmin() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return false;
-        }
-        
-        // Verificar si es un usuario mock con rol ADMIN (para tests)
-        if (hasRole(authentication, "ROLE_ADMIN") || hasRole(authentication, "ADMIN")) {
-            return true;
-        }
-        
-        String currentUserEmail = authentication.getName();
-        
-        // Obtener el usuario autenticado de la base de datos
-        User currentUser = userRepository.findByEmail(currentUserEmail)
-                .orElse(null);
-        
-        if (currentUser == null) {
-            return false;
-        }
-        
-        return RoleEnum.ADMIN.equals(currentUser.getRole());
+        return SecurityUtils.isCurrentUserAdmin();
     }
     
-    /**
-     * Verifica si el usuario autenticado tiene un rol específico
-     */
-    private boolean hasRole(Authentication authentication, String role) {
-        return authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> authority.equals(role));
-    }
+
 
 }

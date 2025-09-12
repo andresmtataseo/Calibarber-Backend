@@ -17,7 +17,7 @@ public class UserResponseDto {
     @Schema(description = "Email del usuario", example = "usuario@ejemplo.com")
     private String email;
 
-    @Schema(description = "Rol del usuario", example = "CLIENT")
+    @Schema(description = "Rol del usuario", example = "ROLE_CLIENT")
     private RoleEnum role;
 
     @Schema(description = "Nombre del usuario", example = "Juan")

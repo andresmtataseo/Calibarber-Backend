@@ -7,7 +7,11 @@ import com.barbershop.features.barber.dto.request.UpdateBarberRequestDto;
 import com.barbershop.features.barber.mapper.BarberMapper;
 import com.barbershop.features.barber.model.Barber;
 import com.barbershop.features.barber.repository.BarberRepository;
-import com.barbershop.features.user.repository.UserRepository;
+import com.barbershop.features.user.service.UserService;
+import com.barbershop.features.user.model.enums.RoleEnum;
+import com.barbershop.features.user.dto.UserUpdateDto;
+import com.barbershop.common.exception.BusinessLogicException;
+import org.springframework.dao.DataIntegrityViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
+import com.barbershop.shared.util.SecurityUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,18 +36,19 @@ import java.util.List;
 public class BarberService {
 
     private final BarberRepository barberRepository;
-    private final UserRepository userRepository;
     private final BarberMapper barberMapper;
+    private final UserService userService;
 
     /**
-     * Crea un nuevo barbero
+     * Crea un nuevo barbero y actualiza automáticamente el rol del usuario a BARBER
      */
+    @Transactional
     public BarberResponseDto createBarber(CreateBarberRequestDto createDto) {
         log.info("Creando nuevo barbero para usuario: {} en barbería: {}", 
                 createDto.getUserId(), createDto.getBarbershopId());
         
         // Validar que el usuario existe y está activo
-        if (!userRepository.findByIdAndNotDeleted(createDto.getUserId()).isPresent()) {
+        if (!userService.existsAndActive(createDto.getUserId())) {
             throw new UserNotFoundException("Usuario no encontrado con ID: " + createDto.getUserId());
         }
         
@@ -51,16 +57,32 @@ public class BarberService {
             throw new IllegalArgumentException("El usuario ya está registrado como barbero");
         }
         
-        // Crear entidad Barber
-        Barber barber = barberMapper.toEntity(createDto);
-        barber.setIsActive(true);
-        barber.setCreatedAt(LocalDateTime.now());
-        barber.setUpdatedAt(LocalDateTime.now());
-        
-        Barber savedBarber = barberRepository.save(barber);
-        log.info("Barbero creado exitosamente con ID: {}", savedBarber.getBarberId());
-        
-        return barberMapper.toResponseDto(savedBarber);
+        try {
+            // Crear entidad Barber
+            Barber barber = barberMapper.toEntity(createDto);
+            barber.setIsActive(true);
+            barber.setCreatedAt(LocalDateTime.now());
+            barber.setUpdatedAt(LocalDateTime.now());
+            
+            Barber savedBarber = barberRepository.save(barber);
+            log.info("Barbero creado exitosamente con ID: {}", savedBarber.getBarberId());
+            
+            UserUpdateDto userUpdateDto = new UserUpdateDto();
+            userUpdateDto.setRole(RoleEnum.ROLE_BARBER);
+            userService.updateUser(createDto.getUserId(), userUpdateDto);
+            log.info("Rol del usuario {} actualizado automáticamente a BARBER", createDto.getUserId());
+            
+            return barberMapper.toResponseDto(savedBarber);
+        } catch (DataIntegrityViolationException e) {
+            String errorMessage = e.getMessage().toLowerCase();
+            if (errorMessage.contains("barbershop_id") || errorMessage.contains("barbershops")) {
+                throw new BusinessLogicException("La barbería especificada no existe o no está disponible");
+            } else if (errorMessage.contains("user_id") || errorMessage.contains("users")) {
+                throw new BusinessLogicException("El usuario especificado no existe o no está disponible");
+            } else {
+                throw new BusinessLogicException("Error al crear el barbero: datos inválidos o duplicados");
+            }
+        }
     }
 
     /**
@@ -155,14 +177,25 @@ public class BarberService {
             throw new AccessDeniedException("No tienes permisos para modificar este barbero");
         }
         
-        // Actualizar campos
-        barberMapper.updateEntity(barber, updateDto);
-        barber.setUpdatedAt(LocalDateTime.now());
-        
-        Barber updatedBarber = barberRepository.save(barber);
-        log.info("Barbero actualizado exitosamente con ID: {}", updatedBarber.getBarberId());
-        
-        return barberMapper.toResponseDto(updatedBarber);
+        try {
+            // Actualizar campos
+            barberMapper.updateEntity(barber, updateDto);
+            barber.setUpdatedAt(LocalDateTime.now());
+            
+            Barber updatedBarber = barberRepository.save(barber);
+            log.info("Barbero actualizado exitosamente con ID: {}", updatedBarber.getBarberId());
+            
+            return barberMapper.toResponseDto(updatedBarber);
+        } catch (DataIntegrityViolationException e) {
+            String errorMessage = e.getMessage().toLowerCase();
+            if (errorMessage.contains("barbershop_id") || errorMessage.contains("barbershops")) {
+                throw new BusinessLogicException("La barbería especificada no existe o no está disponible");
+            } else if (errorMessage.contains("user_id") || errorMessage.contains("users")) {
+                throw new BusinessLogicException("El usuario especificado no existe o no está disponible");
+            } else {
+                throw new BusinessLogicException("Error al actualizar el barbero: datos inválidos o duplicados");
+            }
+        }
     }
 
     /**
@@ -190,7 +223,7 @@ public class BarberService {
         log.info("Restaurando barbero con ID: {}", barberId);
         
         // Verificar que solo los administradores puedan restaurar
-        if (!isCurrentUserAdmin()) {
+        if (!SecurityUtils.isCurrentUserAdmin()) {
             throw new AccessDeniedException("Solo los administradores pueden restaurar barberos");
         }
         
@@ -213,7 +246,7 @@ public class BarberService {
     public Page<BarberResponseDto> getDeletedBarbers(int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo barberos eliminados");
         
-        if (!isCurrentUserAdmin()) {
+        if (!SecurityUtils.isCurrentUserAdmin()) {
             throw new AccessDeniedException("Solo los administradores pueden ver barberos eliminados");
         }
         
@@ -263,23 +296,16 @@ public class BarberService {
         }
         
         // Los administradores pueden acceder a cualquier barbero
-        if (hasRole(authentication, "ROLE_ADMIN")) {
+        if (SecurityUtils.hasRole(authentication, "ROLE_ADMIN")) {
             return true;
         }
         
-        // Los barberos pueden acceder a su propia información
-        if (hasRole(authentication, "ROLE_BARBER")) {
+        // Los barberos solo pueden acceder a su propia información
+        if (SecurityUtils.hasRole(authentication, "ROLE_BARBER")) {
             String currentUserId = authentication.getName();
             return barberRepository.findByUserIdAndActive(currentUserId)
                     .map(barber -> barber.getBarberId().equals(targetBarberId))
                     .orElse(false);
-        }
-        
-        // Los propietarios pueden acceder a barberos de sus barberías
-        if (hasRole(authentication, "ROLE_BARBERSHOP_OWNER")) {
-            String currentUserId = authentication.getName();
-            // Aquí se necesitaría lógica adicional para verificar la propiedad de la barbería
-            return true; // Simplificado por ahora
         }
         
         return false;
@@ -293,28 +319,12 @@ public class BarberService {
         }
         
         // Los administradores pueden modificar cualquier barbero
-        if (hasRole(authentication, "ROLE_ADMIN")) {
+        if (SecurityUtils.hasRole(authentication, "ROLE_ADMIN")) {
             return true;
-        }
-        
-        // Los propietarios pueden modificar barberos de sus barberías
-        if (hasRole(authentication, "ROLE_BARBERSHOP_OWNER")) {
-            String currentUserId = authentication.getName();
-            // Aquí se necesitaría lógica adicional para verificar la propiedad de la barbería
-            return true; // Simplificado por ahora
         }
         
         return false;
     }
 
-    private boolean isCurrentUserAdmin() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && hasRole(authentication, "ROLE_ADMIN");
-    }
 
-    private boolean hasRole(Authentication authentication, String role) {
-        return authentication.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority -> authority.equals(role));
-    }
 }

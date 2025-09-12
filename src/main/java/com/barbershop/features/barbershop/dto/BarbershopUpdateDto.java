@@ -25,10 +25,6 @@ public class BarbershopUpdateDto {
     @Schema(description = "Email de contacto de la barbería", example = "contacto@barberia.com")
     private String email;
 
-    @Schema(description = "Horarios de operación en formato JSON", 
-            example = "{\"lunes\": \"9:00-18:00\", \"martes\": \"9:00-18:00\"}")
-    private String operatingHours;
-
     @Schema(description = "URL del logo de la barbería", example = "https://ejemplo.com/logo.jpg")
     private String logoUrl;
 }

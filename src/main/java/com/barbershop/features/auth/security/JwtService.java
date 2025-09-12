@@ -81,22 +81,22 @@ public class JwtService {
     }
     
     /**
-     * Extrae el rol del usuario del token
+     * Extrae el rol del usuario desde el token JWT
      * @param token Token JWT
-     * @return Rol del usuario (ADMIN, BARBER, CLIENT)
+     * @return Rol del usuario (ROLE_ADMIN, ROLE_BARBER, ROLE_CLIENT)
      */
     public String extractRole(String token) {
         return getClaim(token, claims -> {
             Object roles = claims.get("roles");
             if (roles != null) {
                 String rolesStr = roles.toString();
-                // Extraer el rol de la cadena que puede contener ROLE_ prefix
-                if (rolesStr.contains("ROLE_ADMIN") || rolesStr.contains("ADMIN")) {
-                    return "ADMIN";
-                } else if (rolesStr.contains("ROLE_BARBER") || rolesStr.contains("BARBER")) {
-                    return "BARBER";
-                } else if (rolesStr.contains("ROLE_CLIENT") || rolesStr.contains("CLIENT")) {
-                    return "CLIENT";
+                // Extraer el rol de la cadena con prefijo ROLE_
+                if (rolesStr.contains("ROLE_ADMIN")) {
+                    return "ROLE_ADMIN";
+                } else if (rolesStr.contains("ROLE_BARBER")) {
+                    return "ROLE_BARBER";
+                } else if (rolesStr.contains("ROLE_CLIENT")) {
+                    return "ROLE_CLIENT";
                 }
             }
             return null;
