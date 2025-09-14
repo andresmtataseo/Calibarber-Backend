@@ -1,25 +1,25 @@
 package com.barbershop.features.barbershop.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 @Data
 @Schema(description = "DTO para crear una nueva barbería")
 public class BarbershopCreateDto {
 
-    @NotBlank(message = "El nombre de la barbería es obligatorio")
-    @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+    @NotBlank(message = "El nombre es obligatorio")
+    @Size(min = 2, max = 100, message = "El nombre debe tener entre 2 y 100 caracteres")
     @Schema(description = "Nombre de la barbería", example = "Barbería El Corte Perfecto", required = true)
     private String name;
 
     @NotBlank(message = "La dirección es obligatoria")
+    @Size(max = 500, message = "La dirección no puede exceder 500 caracteres")
     @Schema(description = "Dirección completa de la barbería", example = "Calle 123 #45-67, Bogotá", required = true)
     private String addressText;
 
-    @Size(max = 20, message = "El número de teléfono no puede exceder 20 caracteres")
+    @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "El formato del teléfono no es válido")
+    @Size(max = 20, message = "El teléfono no puede exceder 20 caracteres")
     @Schema(description = "Número de teléfono de la barbería", example = "+573001234567")
     private String phoneNumber;
 

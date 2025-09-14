@@ -1,201 +1,207 @@
 package com.barbershop.features.barbershop.controller;
 
 import com.barbershop.common.dto.ApiResponseDto;
-import com.barbershop.features.barbershop.dto.BarbershopOperatingHoursCreateDto;
 import com.barbershop.features.barbershop.dto.BarbershopOperatingHoursDto;
-import com.barbershop.features.barbershop.service.BarbershopService;
+import com.barbershop.features.barbershop.dto.BarbershopOperatingHoursRequestDto;
+import com.barbershop.features.barbershop.service.BarbershopOperatingHoursService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 /**
  * Controlador REST para gestionar los horarios de operación de las barberías.
- * Proporciona endpoints para crear, consultar, actualizar y eliminar horarios.
+ * Proporciona endpoints para crear, actualizar y consultar horarios usando @RequestParam.
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/barbershops/{barbershopId}/operating-hours")
+@RequestMapping("/api/v1/barbershops/operating-hours")
 @RequiredArgsConstructor
+@Validated
 @Tag(name = "Horarios de Operación", description = "Gestión de horarios de operación de barberías")
 public class BarbershopOperatingHoursController {
 
-    private final BarbershopService barbershopService;
+    private final BarbershopOperatingHoursService operatingHoursService;
 
     /**
-     * Obtiene todos los horarios de operación de una barbería
-     */
-    @GetMapping
-    @Operation(summary = "Obtener horarios de operación", 
-               description = "Obtiene todos los horarios de operación de una barbería ordenados por día de la semana")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Horarios obtenidos exitosamente"),
-        @ApiResponse(responseCode = "404", description = "Barbería no encontrada")
-    })
-    public ResponseEntity<ApiResponseDto<List<BarbershopOperatingHoursDto>>> getOperatingHours(
-            @Parameter(description = "ID de la barbería", required = true)
-            @PathVariable String barbershopId,
-            HttpServletRequest request) {
-        
-        log.info("GET /api/v1/barbershops/{}/operating-hours - Obteniendo horarios", barbershopId);
-        
-        List<BarbershopOperatingHoursDto> operatingHours = barbershopService
-                .getBarbershopOperatingHours(barbershopId);
-        
-        ApiResponseDto<List<BarbershopOperatingHoursDto>> response = ApiResponseDto.<List<BarbershopOperatingHoursDto>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Horarios de operación obtenidos exitosamente")
-                .data(operatingHours)
-                .timestamp(LocalDateTime.now())
-                .path(request.getRequestURI())
-                .build();
-        
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Obtiene el horario de operación para un día específico
-     */
-    @GetMapping("/day/{dayOfWeek}")
-    @Operation(summary = "Obtener horario por día", 
-               description = "Obtiene el horario de operación de una barbería para un día específico")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Horario obtenido exitosamente"),
-        @ApiResponse(responseCode = "404", description = "Barbería o horario no encontrado")
-    })
-    public ResponseEntity<ApiResponseDto<BarbershopOperatingHoursDto>> getOperatingHoursForDay(
-            @Parameter(description = "ID de la barbería", required = true)
-            @PathVariable String barbershopId,
-            @Parameter(description = "Día de la semana", required = true)
-            @PathVariable DayOfWeek dayOfWeek,
-            HttpServletRequest request) {
-        
-        log.info("GET /api/v1/barbershops/{}/operating-hours/day/{} - Obteniendo horario", 
-                barbershopId, dayOfWeek);
-        
-        BarbershopOperatingHoursDto operatingHours = barbershopService
-                .getBarbershopOperatingHoursForDay(barbershopId, dayOfWeek);
-        
-        ApiResponseDto<BarbershopOperatingHoursDto> response = ApiResponseDto.<BarbershopOperatingHoursDto>builder()
-                .status(HttpStatus.OK.value())
-                .message("Horario de operación obtenido exitosamente")
-                .data(operatingHours)
-                .timestamp(LocalDateTime.now())
-                .path(request.getRequestURI())
-                .build();
-        
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Crea o actualiza horarios de operación para una barbería
+     * Crea o actualiza un horario de operación para una barbería usando JSON.
+     * Utiliza @RequestBody para recibir los datos como JSON.
+     * 
+     * @param requestDto DTO con los datos del horario de operación
+     * @param request objeto HttpServletRequest para obtener la ruta
+     * @return respuesta con el horario creado o actualizado
      */
     @PostMapping
-    @Operation(summary = "Crear/actualizar horarios", 
-               description = "Crea o actualiza los horarios de operación de una barbería")
+    @Operation(
+        summary = "Crear o actualizar horario de operación (usando JSON)",
+        description = "Crea un nuevo horario de operación o actualiza uno existente para una barbería en un día específico usando JSON. " +
+                     "Si ya existe un horario para el día especificado, se actualiza; si no existe, se crea uno nuevo."
+    )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Horarios creados/actualizados exitosamente"),
-        @ApiResponse(responseCode = "400", description = "Datos de horarios inválidos"),
-        @ApiResponse(responseCode = "404", description = "Barbería no encontrada")
+        @ApiResponse(
+            responseCode = "200", 
+            description = "Horario creado o actualizado exitosamente",
+            content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400", 
+            description = "Datos de entrada inválidos",
+            content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404", 
+            description = "Barbería no encontrada",
+            content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+        )
     })
-    public ResponseEntity<ApiResponseDto<List<BarbershopOperatingHoursDto>>> createOrUpdateOperatingHours(
-            @Parameter(description = "ID de la barbería", required = true)
-            @PathVariable String barbershopId,
-            @Parameter(description = "Lista de horarios de operación", required = true)
-            @Valid @RequestBody List<BarbershopOperatingHoursCreateDto> operatingHoursData,
+    public ResponseEntity<ApiResponseDto<BarbershopOperatingHoursDto>> createOrUpdateOperatingHours(
+            @Parameter(description = "Datos del horario de operación", required = true)
+            @Valid @RequestBody BarbershopOperatingHoursRequestDto requestDto,
+            
             HttpServletRequest request) {
         
-        log.info("POST /api/v1/barbershops/{}/operating-hours - Creando/actualizando {} horarios", 
-                barbershopId, operatingHoursData.size());
+        log.info("Recibida solicitud JSON para crear/actualizar horario - Barbería: {}, Día: {}, Cerrado: {}", 
+                requestDto.getBarbershopId(), requestDto.getDayOfWeek(), requestDto.getIsClosed());
         
-        List<BarbershopOperatingHoursDto> createdHours = barbershopService
-                .createOrUpdateBarbershopOperatingHours(barbershopId, operatingHoursData);
+        // Validar lógica de negocio personalizada
+        if (!requestDto.isValidSchedule()) {
+            String errorMessage = requestDto.getValidationErrorMessage();
+            log.warn("Validación de horario fallida: {}", errorMessage);
+            throw new IllegalArgumentException(errorMessage);
+        }
+        
+        // Procesar la solicitud
+        BarbershopOperatingHoursDto result = operatingHoursService.createOrUpdateOperatingHours(requestDto);
+        
+        // Construir respuesta
+        ApiResponseDto<BarbershopOperatingHoursDto> response = ApiResponseDto.<BarbershopOperatingHoursDto>builder()
+            .status(HttpStatus.OK.value())
+            .message("Horario de operación procesado exitosamente")
+            .data(result)
+            .timestamp(LocalDateTime.now())
+            .path(request.getRequestURI())
+            .build();
+        
+        log.info("Horario procesado exitosamente para barbería: {} en día: {}", 
+                requestDto.getBarbershopId(), requestDto.getDayOfWeek());
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Obtiene todos los horarios de operación de una barbería.
+     * 
+     * @param barbershopId ID de la barbería
+     * @param request objeto HttpServletRequest para obtener la ruta
+     * @return lista de horarios de operación
+     */
+    @GetMapping
+    @Operation(
+        summary = "Obtener horarios de operación de una barbería",
+        description = "Obtiene todos los horarios de operación configurados para una barbería específica, " +
+                     "ordenados por día de la semana."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200", 
+            description = "Horarios obtenidos exitosamente",
+            content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404", 
+            description = "Barbería no encontrada",
+            content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+        )
+    })
+    public ResponseEntity<ApiResponseDto<List<BarbershopOperatingHoursDto>>> getOperatingHoursByBarbershop(
+            @Parameter(description = "ID de la barbería", required = true, example = "123e4567-e89b-12d3-a456-426614174000")
+            @RequestParam @NotBlank(message = "El ID de la barbería es obligatorio") String barbershopId,
+            
+            HttpServletRequest request) {
+        
+        log.info("Obteniendo horarios de operación para barbería: {}", barbershopId);
+        
+        List<BarbershopOperatingHoursDto> operatingHours = operatingHoursService
+            .getOperatingHoursByBarbershop(barbershopId);
         
         ApiResponseDto<List<BarbershopOperatingHoursDto>> response = ApiResponseDto.<List<BarbershopOperatingHoursDto>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Horarios de operación creados/actualizados exitosamente")
-                .data(createdHours)
-                .timestamp(LocalDateTime.now())
-                .path(request.getRequestURI())
-                .build();
+            .status(HttpStatus.OK.value())
+            .message(String.format("Se encontraron %d horarios de operación", operatingHours.size()))
+            .data(operatingHours)
+            .timestamp(LocalDateTime.now())
+            .path(request.getRequestURI())
+            .build();
+        
+        log.info("Horarios obtenidos exitosamente: {} registros", operatingHours.size());
         
         return ResponseEntity.ok(response);
     }
-
+    
     /**
-     * Verifica si una barbería está abierta en un momento específico
+     * Obtiene un horario específico por barbería y día de la semana.
+     * 
+     * @param barbershopId ID de la barbería
+     * @param dayOfWeek día de la semana
+     * @param request objeto HttpServletRequest para obtener la ruta
+     * @return horario de operación específico
      */
-    @GetMapping("/check-open")
-    @Operation(summary = "Verificar si está abierta", 
-               description = "Verifica si una barbería está abierta en un día y hora específicos")
+    @GetMapping("/day")
+    @Operation(
+        summary = "Obtener horario de un día específico",
+        description = "Obtiene el horario de operación de una barbería para un día específico de la semana."
+    )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Verificación realizada exitosamente"),
-        @ApiResponse(responseCode = "404", description = "Barbería no encontrada")
+        @ApiResponse(
+            responseCode = "200", 
+            description = "Horario obtenido exitosamente",
+            content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404", 
+            description = "Horario no encontrado para el día especificado",
+            content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+        )
     })
-    public ResponseEntity<ApiResponseDto<Boolean>> checkIfOpen(
-            @Parameter(description = "ID de la barbería", required = true)
-            @PathVariable String barbershopId,
-            @Parameter(description = "Día de la semana", required = true)
-            @RequestParam DayOfWeek dayOfWeek,
-            @Parameter(description = "Hora a verificar (formato HH:mm)", required = true)
-            @RequestParam @DateTimeFormat(pattern = "HH:mm") LocalTime time,
+    public ResponseEntity<ApiResponseDto<BarbershopOperatingHoursDto>> getOperatingHoursByDay(
+            @Parameter(description = "ID de la barbería", required = true, example = "123e4567-e89b-12d3-a456-426614174000")
+            @RequestParam @NotBlank(message = "El ID de la barbería es obligatorio") String barbershopId,
+            
+            @Parameter(description = "Día de la semana", required = true, example = "MONDAY")
+            @RequestParam @NotNull(message = "El día de la semana es obligatorio") DayOfWeek dayOfWeek,
+            
             HttpServletRequest request) {
         
-        log.info("GET /api/v1/barbershops/{}/operating-hours/check-open?dayOfWeek={}&time={}", 
-                barbershopId, dayOfWeek, time);
+        log.info("Obteniendo horario para barbería: {} en día: {}", barbershopId, dayOfWeek);
         
-        boolean isOpen = barbershopService.isBarbershopOpenAt(barbershopId, dayOfWeek, time);
+        BarbershopOperatingHoursDto operatingHours = operatingHoursService
+            .getOperatingHoursByBarbershopAndDay(barbershopId, dayOfWeek);
         
-        ApiResponseDto<Boolean> response = ApiResponseDto.<Boolean>builder()
-                .status(HttpStatus.OK.value())
-                .message(isOpen ? "La barbería está abierta" : "La barbería está cerrada")
-                .data(isOpen)
-                .timestamp(LocalDateTime.now())
-                .path(request.getRequestURI())
-                .build();
+        ApiResponseDto<BarbershopOperatingHoursDto> response = ApiResponseDto.<BarbershopOperatingHoursDto>builder()
+            .status(HttpStatus.OK.value())
+            .message("Horario obtenido exitosamente")
+            .data(operatingHours)
+            .timestamp(LocalDateTime.now())
+            .path(request.getRequestURI())
+            .build();
         
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Elimina todos los horarios de operación de una barbería
-     */
-    @DeleteMapping
-    @Operation(summary = "Eliminar horarios", 
-               description = "Elimina todos los horarios de operación de una barbería")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Horarios eliminados exitosamente"),
-        @ApiResponse(responseCode = "404", description = "Barbería no encontrada")
-    })
-    public ResponseEntity<ApiResponseDto<Void>> deleteOperatingHours(
-            @Parameter(description = "ID de la barbería", required = true)
-            @PathVariable String barbershopId,
-            HttpServletRequest request) {
-        
-        log.info("DELETE /api/v1/barbershops/{}/operating-hours - Eliminando horarios", barbershopId);
-        
-        barbershopService.deleteBarbershopOperatingHours(barbershopId);
-        
-        ApiResponseDto<Void> response = ApiResponseDto.<Void>builder()
-                .status(HttpStatus.OK.value())
-                .message("Horarios de operación eliminados exitosamente")
-                .timestamp(LocalDateTime.now())
-                .path(request.getRequestURI())
-                .build();
+        log.info("Horario obtenido exitosamente para día: {}", dayOfWeek);
         
         return ResponseEntity.ok(response);
     }

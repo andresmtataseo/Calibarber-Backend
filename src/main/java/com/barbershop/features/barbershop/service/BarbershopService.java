@@ -4,8 +4,6 @@ import com.barbershop.common.exception.ResourceAlreadyExistsException;
 import com.barbershop.common.exception.ResourceNotFoundException;
 import com.barbershop.common.exception.BusinessLogicException;
 import com.barbershop.features.barbershop.dto.BarbershopCreateDto;
-import com.barbershop.features.barbershop.dto.BarbershopOperatingHoursCreateDto;
-import com.barbershop.features.barbershop.dto.BarbershopOperatingHoursDto;
 import com.barbershop.features.barbershop.dto.BarbershopResponseDto;
 import com.barbershop.features.barbershop.dto.BarbershopUpdateDto;
 import com.barbershop.features.barbershop.mapper.BarbershopMapper;
@@ -21,10 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +29,6 @@ public class BarbershopService {
 
     private final BarbershopRepository barbershopRepository;
     private final BarbershopMapper barbershopMapper;
-    private final BarbershopOperatingHoursService operatingHoursService;
 
     /**
      * Crea una nueva barbería
@@ -57,14 +51,7 @@ public class BarbershopService {
             Barbershop savedBarbershop = barbershopRepository.save(barbershop);
 
             log.info("Barbería creada exitosamente con ID: {}", savedBarbershop.getBarbershopId());
-            BarbershopResponseDto responseDto = barbershopMapper.toResponseDto(savedBarbershop);
-            
-            // Incluir horarios de operación si existen
-            List<BarbershopOperatingHoursDto> operatingHours = operatingHoursService
-                    .getOperatingHoursByBarbershop(savedBarbershop.getBarbershopId());
-            responseDto.setOperatingHours(operatingHours);
-            
-            return responseDto;
+            return barbershopMapper.toResponseDto(savedBarbershop);
         } catch (DataIntegrityViolationException e) {
             String errorMessage = e.getMessage().toLowerCase();
             if (errorMessage.contains("name") || errorMessage.contains("nombre")) {
@@ -91,14 +78,7 @@ public class BarbershopService {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Barbershop> barbershops = barbershopRepository.findAllActive(pageable);
-        return barbershops.map(barbershop -> {
-            BarbershopResponseDto responseDto = barbershopMapper.toResponseDto(barbershop);
-            // Incluir horarios de operación
-             List<BarbershopOperatingHoursDto> operatingHours = operatingHoursService
-                     .getOperatingHoursByBarbershop(barbershop.getBarbershopId());
-            responseDto.setOperatingHours(operatingHours);
-            return responseDto;
-        });
+        return barbershops.map(barbershopMapper::toResponseDto);
     }
 
     /**
@@ -111,14 +91,7 @@ public class BarbershopService {
         Barbershop barbershop = barbershopRepository.findByIdAndNotDeleted(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Barbería no encontrada con ID: " + id));
 
-        BarbershopResponseDto responseDto = barbershopMapper.toResponseDto(barbershop);
-        
-        // Incluir horarios de operación
-        List<BarbershopOperatingHoursDto> operatingHours = operatingHoursService
-                .getOperatingHoursByBarbershop(barbershop.getBarbershopId());
-        responseDto.setOperatingHours(operatingHours);
-        
-        return responseDto;
+        return barbershopMapper.toResponseDto(barbershop);
     }
 
     /**
@@ -150,14 +123,7 @@ public class BarbershopService {
             Barbershop updatedBarbershop = barbershopRepository.save(existingBarbershop);
 
             log.info("Barbería actualizada exitosamente con ID: {}", id);
-            BarbershopResponseDto responseDto = barbershopMapper.toResponseDto(updatedBarbershop);
-            
-            // Incluir horarios de operación si existen
-            List<BarbershopOperatingHoursDto> operatingHours = operatingHoursService
-                    .getOperatingHoursByBarbershop(updatedBarbershop.getBarbershopId());
-            responseDto.setOperatingHours(operatingHours);
-            
-            return responseDto;
+            return barbershopMapper.toResponseDto(updatedBarbershop);
         } catch (DataIntegrityViolationException e) {
             String errorMessage = e.getMessage().toLowerCase();
             if (errorMessage.contains("name") || errorMessage.contains("nombre")) {
@@ -203,111 +169,18 @@ public class BarbershopService {
         Barbershop restoredBarbershop = barbershopRepository.save(barbershop);
 
         log.info("Barbería restaurada exitosamente con ID: {}", id);
-        BarbershopResponseDto responseDto = barbershopMapper.toResponseDto(restoredBarbershop);
-        
-        // Incluir horarios de operación
-        List<BarbershopOperatingHoursDto> operatingHours = operatingHoursService
-                .getOperatingHoursByBarbershop(restoredBarbershop.getBarbershopId());
-        responseDto.setOperatingHours(operatingHours);
-        
-        return responseDto;
+        return barbershopMapper.toResponseDto(restoredBarbershop);
     }
 
-    /**
-     * Obtiene todas las barberías eliminadas paginadas
-     */
+
     @Transactional(readOnly = true)
     public Page<BarbershopResponseDto> getDeletedBarbershops(int page, int size, String sortBy, String sortDir) {
-        log.info("Obteniendo barberías eliminadas paginadas: página {}, tamaño {}, Ordenar por: {}, Dirección: {}", 
-                page, size, sortBy, sortDir);
-
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Barbershop> deletedBarbershops = barbershopRepository.findAllDeleted(pageable);
-        return deletedBarbershops.map(barbershop -> {
-            BarbershopResponseDto responseDto = barbershopMapper.toResponseDto(barbershop);
-            // Incluir horarios de operación
-             List<BarbershopOperatingHoursDto> operatingHours = operatingHoursService
-                     .getOperatingHoursByBarbershop(barbershop.getBarbershopId());
-            responseDto.setOperatingHours(operatingHours);
-            return responseDto;
-        });
+        return deletedBarbershops.map(barbershopMapper::toResponseDto);
     }
 
-    // ==================== MÉTODOS PARA HORARIOS DE OPERACIÓN ====================
-
-    /**
-     * Obtiene todos los horarios de operación de una barbería
-     */
-    @Transactional(readOnly = true)
-    public List<BarbershopOperatingHoursDto> getBarbershopOperatingHours(String barbershopId) {
-        log.info("Obteniendo horarios de operación para barbería: {}", barbershopId);
-        
-        // Verificar que la barbería existe
-        barbershopRepository.findByIdAndNotDeleted(barbershopId)
-                .orElseThrow(() -> new ResourceNotFoundException("Barbería no encontrada con ID: " + barbershopId));
-        
-        return operatingHoursService.getOperatingHoursByBarbershop(barbershopId);
-    }
-
-    /**
-     * Obtiene el horario de operación para un día específico
-     */
-    @Transactional(readOnly = true)
-    public BarbershopOperatingHoursDto getBarbershopOperatingHoursForDay(String barbershopId, DayOfWeek dayOfWeek) {
-        log.info("Obteniendo horario para barbería {} en día {}", barbershopId, dayOfWeek);
-        
-        // Verificar que la barbería existe
-        barbershopRepository.findByIdAndNotDeleted(barbershopId)
-                .orElseThrow(() -> new ResourceNotFoundException("Barbería no encontrada con ID: " + barbershopId));
-        
-        return operatingHoursService.getOperatingHoursForDay(barbershopId, dayOfWeek)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "No se encontraron horarios para el día " + dayOfWeek + " en la barbería: " + barbershopId));
-    }
-
-    /**
-     * Crea o actualiza horarios de operación para una barbería
-     */
-    public List<BarbershopOperatingHoursDto> createOrUpdateBarbershopOperatingHours(
-            String barbershopId, 
-            List<BarbershopOperatingHoursCreateDto> operatingHoursData) {
-        
-        log.info("Creando/actualizando horarios para barbería: {}", barbershopId);
-        
-        // Verificar que la barbería existe
-        barbershopRepository.findByIdAndNotDeleted(barbershopId)
-                .orElseThrow(() -> new ResourceNotFoundException("Barbería no encontrada con ID: " + barbershopId));
-        
-        return operatingHoursService.createOrUpdateOperatingHours(barbershopId, operatingHoursData);
-    }
-
-    /**
-     * Verifica si una barbería está abierta en un día y hora específicos
-     */
-    @Transactional(readOnly = true)
-    public boolean isBarbershopOpenAt(String barbershopId, DayOfWeek dayOfWeek, LocalTime time) {
-        log.debug("Verificando si barbería {} está abierta el {} a las {}", barbershopId, dayOfWeek, time);
-        
-        // Verificar que la barbería existe
-        barbershopRepository.findByIdAndNotDeleted(barbershopId)
-                .orElseThrow(() -> new ResourceNotFoundException("Barbería no encontrada con ID: " + barbershopId));
-        
-        return operatingHoursService.isBarbershopOpenAt(barbershopId, dayOfWeek, time);
-    }
-
-    /**
-     * Elimina todos los horarios de operación de una barbería
-     */
-    public void deleteBarbershopOperatingHours(String barbershopId) {
-        log.info("Eliminando todos los horarios de barbería: {}", barbershopId);
-        
-        // Verificar que la barbería existe
-        barbershopRepository.findByIdAndNotDeleted(barbershopId)
-                .orElseThrow(() -> new ResourceNotFoundException("Barbería no encontrada con ID: " + barbershopId));
-        
-        operatingHoursService.deleteAllOperatingHours(barbershopId);
-    }
 
 }
