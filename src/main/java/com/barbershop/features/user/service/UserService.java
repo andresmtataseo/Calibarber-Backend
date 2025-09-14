@@ -178,12 +178,23 @@ public class UserService {
             if (updateDto.getPhoneNumber() != null) {
                 user.setPhoneNumber(updateDto.getPhoneNumber());
             }
+            
+            // Validación de seguridad: Solo administradores pueden cambiar roles
             if (updateDto.getRole() != null) {
+                if (!SecurityUtils.isCurrentUserAdmin()) {
+                    throw new AccessDeniedException("Solo los administradores pueden modificar roles de usuario");
+                }
                 user.setRole(updateDto.getRole());
             }
+            
+            // Validación de seguridad: Solo administradores pueden cambiar el estado activo
             if (updateDto.getIsActive() != null) {
+                if (!SecurityUtils.isCurrentUserAdmin()) {
+                    throw new AccessDeniedException("Solo los administradores pueden modificar el estado activo de usuario");
+                }
                 user.setIsActive(updateDto.getIsActive());
             }
+            
             if (updateDto.getProfilePictureUrl() != null) {
                 user.setProfilePictureUrl(updateDto.getProfilePictureUrl());
             }

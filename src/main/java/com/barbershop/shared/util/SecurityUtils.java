@@ -1,5 +1,6 @@
 package com.barbershop.shared.util;
 
+import com.barbershop.features.user.model.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,7 +27,11 @@ public class SecurityUtils {
 
     public static String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null ? authentication.getName() : null;
+        if (authentication != null && authentication.getPrincipal() instanceof User) {
+            User user = (User) authentication.getPrincipal();
+            return user.getUserId();
+        }
+        return null;
     }
 
     public static boolean isCurrentUserBarber() {
