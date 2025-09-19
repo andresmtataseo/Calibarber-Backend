@@ -91,8 +91,8 @@ public class BarberController {
      * Puede devolver un barbero específico por ID, barberos por barbería, por especialización o todos los barberos.
      *
      * Permisos de acceso:
-     * - ADMIN: Puede obtener información de cualquier barbero
-
+     * - **Acceso público:** No requiere autenticación para obtener información básica de barberos
+     * - ADMIN: Puede obtener información completa de cualquier barbero
      * - BARBER: Solo puede obtener su propia información cuando se especifica ID
      * - CLIENT: Puede obtener información básica de barberos para agendar citas
      *
@@ -109,7 +109,8 @@ public class BarberController {
     @Operation(
             summary = "Obtener barberos",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede obtener información de cualquier barbero<br/>" +
+                         "• <strong>Acceso público:</strong> No requiere autenticación para obtener información básica de barberos<br/>" +
+                         "• <strong>ADMIN:</strong> Puede obtener información completa de cualquier barbero<br/>" +
                          "• <strong>BARBER:</strong> Solo puede obtener su propia información cuando se especifica ID<br/>" +
                          "• <strong>CLIENT:</strong> Puede obtener información básica de barberos para agendar citas",
             responses = {
@@ -121,7 +122,6 @@ public class BarberController {
 
             }
     )
-    @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     public ResponseEntity<ApiResponseDto<?>> getBarbers(
             @Parameter(description = "ID del barbero específico") @RequestParam(required = false) String id,

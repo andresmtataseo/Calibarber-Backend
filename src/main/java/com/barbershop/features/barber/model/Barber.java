@@ -1,5 +1,8 @@
 package com.barbershop.features.barber.model;
 
+import com.barbershop.features.appointment.model.Appointment;
+import com.barbershop.features.barbershop.model.Barbershop;
+import com.barbershop.features.user.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -53,15 +56,15 @@ public class Barber implements Serializable {
     // Relaciones
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
-    private com.barbershop.features.user.model.User user;
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "barbershop_id", insertable = false, updatable = false)
-    private com.barbershop.features.barbershop.model.Barbershop barbershop;
+    private Barbershop barbershop;
 
     @OneToMany(mappedBy = "barber", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<BarberAvailability> barberAvailabilities;
 
     @OneToMany(mappedBy = "barber", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<com.barbershop.features.appointment.model.Appointment> appointments;
+    private List<Appointment> appointments;
 }

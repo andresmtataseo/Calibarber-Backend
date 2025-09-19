@@ -105,7 +105,6 @@ public class UserController {
                     )
             }
     )
-    @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     public ResponseEntity<ApiResponseDto<?>> getUsers(
             @RequestParam(required = false) String id,

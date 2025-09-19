@@ -12,7 +12,6 @@ import com.barbershop.features.service.mapper.ServiceMapper;
 import com.barbershop.features.service.repository.ServiceRepository;
 import com.barbershop.common.dto.ApiResponseDto;
 import com.barbershop.features.user.model.User;
-import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 
@@ -117,10 +116,7 @@ public class ServiceService {
     @Transactional(readOnly = true)
     public ApiResponseDto<Page<ServiceResponseDto>> getAllServices(int page, int size, String sortBy, String sortDir) {
         log.info("Obteniendo servicios - Página: {}, Tamaño: {}, Ordenar por: {}, Dirección: {}", page, size, sortBy, sortDir);
-        
-        // Validar que solo los administradores puedan acceder
-        validateAdminAccess();
-        
+
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         

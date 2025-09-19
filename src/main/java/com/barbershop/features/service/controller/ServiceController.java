@@ -111,11 +111,9 @@ public class ServiceController {
     @Operation(
             summary = "Obtener todos los servicios",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ROLE_ADMIN:</strong> Puede obtener todos los servicios del sistema<br/>" +
-                         "• <strong>ROLE_BARBER:</strong> Puede obtener todos los servicios del sistema<br/>" +
-                         "• <strong>ROLE_CLIENT:</strong> Puede obtener todos los servicios del sistema"
+                         "• <strong>Acceso público:</strong> No requiere autenticación<br/>" +
+                         "• Disponible para todos los usuarios sin necesidad de token"
     )
-    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de servicios obtenida exitosamente",
                     content = @Content(schema = @Schema(implementation = ApiResponseDto.class)))

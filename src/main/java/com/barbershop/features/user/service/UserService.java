@@ -124,11 +124,6 @@ public class UserService {
         User user = userRepository.findByIdAndNotDeleted(userId)
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + userId));
         
-        // Verificar autorización
-        if (!canAccessUser(userId)) {
-            throw new AccessDeniedException("No tienes permisos para acceder a este usuario");
-        }
-        
         return userMapper.toResponseDto(user);
     }
 
