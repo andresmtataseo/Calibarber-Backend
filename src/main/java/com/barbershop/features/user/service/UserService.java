@@ -88,11 +88,6 @@ public class UserService {
         log.info("Obteniendo usuarios paginados: página {}, tamaño {}", 
                 pageable.getPageNumber(), pageable.getPageSize());
         
-        // Verificar que solo los administradores puedan ver todos los usuarios
-        if (!isCurrentUserAdmin()) {
-            throw new AccessDeniedException("No tienes permisos para ver la lista de usuarios");
-        }
-        
         Page<User> users = userRepository.findAllActive(pageable);
         return users.map(userMapper::toResponseDto);
     }
@@ -274,6 +269,15 @@ public class UserService {
         
         // Llamar al método existente
         return getDeletedUsers(pageable);
+    }
+
+    /**
+     * Obtiene el total de usuarios activos
+     */
+    @Transactional(readOnly = true)
+    public long getTotalActiveUsers() {
+        log.info("Obteniendo total de usuarios activos");
+        return userRepository.countByIsActiveTrueAndIsDeletedFalse();
     }
 
     /**

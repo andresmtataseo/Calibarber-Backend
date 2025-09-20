@@ -326,5 +326,13 @@ public class BarberService {
         return false;
     }
 
+    /**
+     * Obtiene el total de barberos activos
+     */
+    @Transactional(readOnly = true)
+    public long getTotalActiveBarbers() {
+        log.info("Obteniendo total de barberos activos");
+        return barberRepository.countByIsActiveTrueAndIsDeletedFalse();
+    }
 
 }

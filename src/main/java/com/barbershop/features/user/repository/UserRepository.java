@@ -100,4 +100,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     
     @Query("SELECT u FROM User u WHERE (LOWER(u.firstName) LIKE LOWER(CONCAT('%', :firstName, '%')) OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :lastName, '%'))) AND u.isDeleted = false")
     List<User> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(@Param("firstName") String firstName, @Param("lastName") String lastName);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = true AND u.isDeleted = false")
+    long countByIsActiveTrueAndIsDeletedFalse();
 }

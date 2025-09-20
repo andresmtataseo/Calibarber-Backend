@@ -571,4 +571,14 @@ public class AppointmentService {
             throw new BusinessLogicException("No se puede modificar una cita que está " + appointment.getStatus().name().toLowerCase());
         }
     }
+
+    /**
+     * Obtiene el total de citas del día de hoy
+     */
+    @Transactional(readOnly = true)
+    public Long getTodayAppointmentsCount() {
+        log.info("Obteniendo total de citas del día de hoy");
+        LocalDateTime today = LocalDateTime.now();
+        return appointmentRepository.countTodayAppointments(today);
+    }
 }

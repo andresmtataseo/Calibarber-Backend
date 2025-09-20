@@ -89,4 +89,7 @@ public interface BarberRepository extends JpaRepository<Barber, String> {
 
     @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Barber b WHERE b.userId = :userId AND b.barbershopId != :barbershopId AND b.isActive = true")
     boolean existsByUserIdAndBarbershopIdNotAndActive(@Param("userId") String userId, @Param("barbershopId") String barbershopId);
+
+    @Query("SELECT COUNT(b) FROM Barber b WHERE b.isActive = true")
+    long countByIsActiveTrueAndIsDeletedFalse();
 }

@@ -796,4 +796,46 @@ public class BarberController {
                         .build()
         );
     }
+
+    /**
+     * Obtiene el total de barberos activos en el sistema.
+     *
+     * Permisos de acceso:
+     * - ROLE_ADMIN: Puede obtener el total de barberos activos
+     * - ROLE_BARBER: No tiene permisos para obtener estadísticas
+     * - ROLE_CLIENT: No tiene permisos para obtener estadísticas
+     *
+     * @param request Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con el total de barberos activos
+     */
+    @Operation(
+            summary = "Obtener total de barberos activos",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ROLE_ADMIN:</strong> Puede obtener el total de barberos activos<br/>" +
+                         "• <strong>ROLE_BARBER:</strong> No tiene permisos para obtener estadísticas<br/>" +
+                         "• <strong>ROLE_CLIENT:</strong> No tiene permisos para obtener estadísticas",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Total de barberos activos obtenido exitosamente",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    )
+            }
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/count/active")
+    public ResponseEntity<ApiResponseDto<Long>> getTotalActiveBarbers(HttpServletRequest request) {
+        
+        Long totalActiveBarbers = barberService.getTotalActiveBarbers();
+
+        return ResponseEntity.ok(
+                ApiResponseDto.<Long>builder()
+                        .status(HttpStatus.OK.value())
+                        .message("Total de barberos activos obtenido exitosamente")
+                        .timestamp(LocalDateTime.now())
+                        .path(request.getRequestURI())
+                        .data(totalActiveBarbers)
+                        .build()
+        );
+    }
 }

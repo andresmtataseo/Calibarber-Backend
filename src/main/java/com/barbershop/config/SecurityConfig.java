@@ -5,6 +5,7 @@ import com.barbershop.features.auth.security.JwtEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -31,8 +32,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authRequest ->
                         authRequest
                                 .requestMatchers("/api/v1/auth/sign-in", "/api/v1/auth/sign-up", "/api/v1/auth/reset-password", "/api/v1/auth/forgot-password", "/api/v1/auth/check-email", "/api/v1/auth/check-auth").permitAll()
-                                .requestMatchers("/api/v1/services/all").permitAll()
-                                .requestMatchers("/api/v1/barbers", "/api/v1/users").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/services/all").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/barbers", "/api/v1/users", "/api/v1/barbershops", "/api/v1/barbershops/operating-hours").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/v1/barbers/count/active", "/api/v1/users/count/active").permitAll()	
                                 .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/swagger-resources/**", "/webjars/**").permitAll()
                                 .requestMatchers("/api/v1/health").permitAll()
                                 .anyRequest().authenticated()
