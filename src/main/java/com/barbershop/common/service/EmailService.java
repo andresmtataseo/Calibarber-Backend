@@ -255,7 +255,7 @@ public class EmailService {
                                 </ol>
                                 
                                 <div style="text-align: center; margin-top: 20px;">
-                                    <a href="https://calibarber.app/reset-password?token=%s" class="reset-link">
+                                    <a href="https://calibarber-frontend.onrender.com/reset-password" class="reset-link">
                                         Restablecer Contraseña
                                     </a>
                                 </div>
@@ -506,18 +506,11 @@ public class EmailService {
                             </div>
                             
                             <div style="text-align: center; margin: 30px 0;">
-                                <a href="https://calibarber.app/dashboard" class="cta-button">
+                                <a href="https://calibarber-frontend.onrender.com" class="cta-button">
                                     Explorar la Aplicación
                                 </a>
                             </div>
-                            
-                            <div class="contact-info">
-                                <h4>¿Necesitas ayuda?</h4>
-                                <p>Nuestro equipo está aquí para asistirte en todo momento</p>
-                                <p><strong>Email:</strong> soporte@calibarber.app</p>
-                                <p><strong>Teléfono:</strong> +1 (555) 123-4567</p>
-                                <p><strong>Horarios:</strong> Lunes a Sábado, 9:00 AM - 8:00 PM</p>
-                            </div>
+                    
                         </div>
                         <div class="footer">
                             <p>Gracias por confiar en Calibarber Barbershop para tu cuidado personal.</p>
