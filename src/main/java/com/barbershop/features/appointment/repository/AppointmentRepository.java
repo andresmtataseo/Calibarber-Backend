@@ -116,8 +116,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.barberId = :barberId AND DATE(a.appointmentDatetimeStart) = DATE(:date)")
     long countByBarberIdAndDate(@Param("barberId") String barberId, @Param("date") LocalDateTime date);
 
-    @Query("SELECT COUNT(a) FROM Appointment a WHERE FUNCTION('DATE', a.appointmentDatetimeStart) = FUNCTION('DATE', :date)")
-    long countTodayAppointments(@Param("date") LocalDateTime date);
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.appointmentDatetimeStart >= :startOfDay AND a.appointmentDatetimeStart < :endOfDay")
+    long countTodayAppointments(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
     // Consultas para próximas citas
     @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId AND a.appointmentDatetimeStart > :now AND a.status IN ('SCHEDULED', 'CONFIRMED') ORDER BY a.appointmentDatetimeStart ASC")

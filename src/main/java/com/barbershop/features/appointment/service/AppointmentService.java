@@ -772,8 +772,10 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public Long getTodayAppointmentsCount() {
         log.info("Obteniendo total de citas del día de hoy");
-        LocalDateTime today = LocalDateTime.now();
-        return appointmentRepository.countTodayAppointments(today);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        return appointmentRepository.countTodayAppointments(startOfDay, endOfDay);
     }
 
     /**
