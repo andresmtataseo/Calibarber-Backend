@@ -138,4 +138,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
 
     @Query("SELECT a FROM Appointment a WHERE a.barberId = :barberId AND a.status IN ('COMPLETED', 'CANCELLED', 'NO_SHOW') ORDER BY a.appointmentDatetimeStart DESC")
     Page<Appointment> findHistoryByBarberId(@Param("barberId") String barberId, Pageable pageable);
+
+    // Consulta para obtener citas de múltiples barberos en un rango de fechas
+    @Query("SELECT a FROM Appointment a WHERE a.barberId IN :barberIds AND a.appointmentDatetimeStart BETWEEN :startDate AND :endDate AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') ORDER BY a.appointmentDatetimeStart ASC")
+    List<Appointment> findByBarberIdInAndAppointmentDatetimeStartBetween(@Param("barberIds") List<String> barberIds, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }

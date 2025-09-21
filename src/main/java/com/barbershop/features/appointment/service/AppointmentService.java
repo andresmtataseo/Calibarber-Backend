@@ -4,14 +4,28 @@ import com.barbershop.common.dto.ApiResponseDto;
 import com.barbershop.common.exception.ResourceNotFoundException;
 import com.barbershop.common.exception.BusinessLogicException;
 import com.barbershop.features.appointment.dto.AppointmentResponseDto;
+import com.barbershop.features.appointment.dto.BarberAvailabilityDto;
+import com.barbershop.features.appointment.dto.BarbersAvailabilityResponseDto;
 import com.barbershop.features.appointment.dto.request.CreateAppointmentRequestDto;
 import com.barbershop.features.appointment.dto.request.UpdateAppointmentRequestDto;
 import com.barbershop.features.appointment.mapper.AppointmentMapper;
+import com.barbershop.features.appointment.dto.AvailabilityResponseDto;
+import com.barbershop.features.appointment.dto.DayAvailabilityDto;
+import com.barbershop.features.appointment.dto.DayAvailabilityResponseDto;
+import com.barbershop.features.appointment.dto.DayAvailabilitySlotDto;
 import com.barbershop.features.appointment.model.Appointment;
 import com.barbershop.features.appointment.model.enums.AppointmentStatus;
+import com.barbershop.features.appointment.model.enums.AvailabilityStatus;
 import com.barbershop.features.appointment.repository.AppointmentRepository;
 import com.barbershop.features.auth.security.JwtService;
 import com.barbershop.features.barber.repository.BarberRepository;
+import com.barbershop.features.barber.repository.BarberAvailabilityRepository;
+import com.barbershop.features.barber.model.BarberAvailability;
+import com.barbershop.features.barber.model.Barber;
+import com.barbershop.features.barber.model.DayOfWeek;
+import com.barbershop.features.barbershop.model.BarbershopOperatingHours;
+import com.barbershop.features.barbershop.repository.BarbershopRepository;
+import com.barbershop.features.barbershop.repository.BarbershopOperatingHoursRepository;
 import com.barbershop.features.service.repository.ServiceRepository;
 import com.barbershop.features.user.repository.UserRepository;
 import com.barbershop.shared.util.SecurityUtils;
@@ -26,8 +40,17 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -41,6 +64,9 @@ public class AppointmentService {
     private final UserRepository userRepository;
     private final BarberRepository barberRepository;
     private final ServiceRepository serviceRepository;
+    private final BarbershopRepository barbershopRepository;
+    private final BarbershopOperatingHoursRepository operatingHoursRepository;
+    private final BarberAvailabilityRepository barberAvailabilityRepository;
 
     /**
      * Crea una nueva cita
@@ -110,8 +136,6 @@ public class AppointmentService {
      */
     @Transactional(readOnly = true)
     public ApiResponseDto<Page<AppointmentResponseDto>> getAllAppointments(int page, int size, String sortBy, String sortDir, String token) {
-        log.info("Obteniendo citas - Página: {}, Tamaño: {}, Ordenar por: {}, Dirección: {}", page, size, sortBy, sortDir);
-        
         // Solo administradores pueden ver todas las citas
         validateAdminAccess(token);
         
@@ -158,8 +182,7 @@ public class AppointmentService {
      */
     @Transactional(readOnly = true)
     public ApiResponseDto<Page<AppointmentResponseDto>> getAppointmentsByBarber(String barberId, int page, int size, String sortBy, String sortDir, String token) {
-        log.info("Obteniendo citas del barbero: {}", barberId);
-        
+
         // Validar autorización
         validateBarberAccess(token, barberId);
         
@@ -580,5 +603,595 @@ public class AppointmentService {
         log.info("Obteniendo total de citas del día de hoy");
         LocalDateTime today = LocalDateTime.now();
         return appointmentRepository.countTodayAppointments(today);
+    }
+
+    /**
+     * Obtiene la disponibilidad de la barbería en un rango de fechas
+     * Como el sistema maneja una sola barbería, no requiere barbershopId
+     * 
+     * @param startDate Fecha inicial del rango
+     * @param endDate Fecha final del rango
+     * @return DTO con la disponibilidad por días
+     */
+    public AvailabilityResponseDto getBarbershopAvailability(LocalDate startDate, LocalDate endDate) {
+        log.info("Calculando disponibilidad desde {} hasta {}", startDate, endDate);
+        
+        // Validar parámetros
+        if (startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("La fecha inicial no puede ser posterior a la fecha final");
+        }
+        
+        // Obtener la primera barbería activa (asumiendo que solo hay una)
+        List<com.barbershop.features.barbershop.model.Barbershop> activeBarbershops = 
+            barbershopRepository.findAllActive();
+        
+        if (activeBarbershops.isEmpty()) {
+            throw new BusinessLogicException("No hay barberías activas en el sistema");
+        }
+        
+        // Tomar la primera barbería (única en el sistema)
+        String barbershopId = activeBarbershops.get(0).getBarbershopId();
+        
+        // Obtener horarios de operación de la barbería
+        List<BarbershopOperatingHours> operatingHours = operatingHoursRepository
+            .findByBarbershopIdOrderByDayOfWeek(barbershopId);
+        
+        // Crear mapa de horarios por día de la semana
+        Map<java.time.DayOfWeek, BarbershopOperatingHours> operatingHoursMap = operatingHours.stream()
+            .collect(Collectors.toMap(
+                BarbershopOperatingHours::getDayOfWeek,
+                Function.identity()
+            ));
+        
+        // Obtener todos los barberos activos de la barbería
+        List<String> barberIds = barberRepository.findByBarbershopIdAndActive(barbershopId)
+            .stream()
+            .map(barber -> barber.getBarberId())
+            .collect(Collectors.toList());
+        
+        if (barberIds.isEmpty()) {
+            log.warn("No se encontraron barberos activos para la barbería {}", barbershopId);
+            // Si no hay barberos, todos los días están sin disponibilidad
+            return createUnavailableResponse(startDate, endDate);
+        }
+        
+        // Calcular disponibilidad para cada día en el rango
+        List<DayAvailabilityDto> availabilityList = new ArrayList<>();
+        LocalDate currentDate = startDate;
+        
+        while (!currentDate.isAfter(endDate)) {
+            java.time.DayOfWeek javaDayOfWeek = currentDate.getDayOfWeek();
+            DayOfWeek dayOfWeek = DayOfWeek.valueOf(javaDayOfWeek.name());
+            BarbershopOperatingHours dayOperatingHours = operatingHoursMap.get(javaDayOfWeek);
+            
+            AvailabilityStatus status = calculateDayAvailability(
+                barbershopId, 
+                currentDate, 
+                dayOperatingHours, 
+                barberIds
+            );
+            
+            availabilityList.add(DayAvailabilityDto.builder()
+                .date(currentDate)
+                .status(status)
+                .build());
+            
+            currentDate = currentDate.plusDays(1);
+        }
+        
+        log.info("Disponibilidad calculada para {} días", availabilityList.size());
+        
+        return AvailabilityResponseDto.builder()
+            .availability(availabilityList)
+            .build();
+    }
+    
+    /**
+     * Calcula la disponibilidad para un día específico
+     */
+    private AvailabilityStatus calculateDayAvailability(
+            String barbershopId, 
+            LocalDate date, 
+            BarbershopOperatingHours operatingHours, 
+            List<String> barberIds) {
+        
+        // Si la fecha es anterior a hoy, marcar como no disponible
+        if (date.isBefore(LocalDate.now())) {
+            return AvailabilityStatus.SIN_DISPONIBILIDAD;
+        }
+        
+        // Si la barbería está cerrada ese día
+        if (operatingHours == null || operatingHours.getIsClosed()) {
+            return AvailabilityStatus.SIN_DISPONIBILIDAD;
+        }
+        
+        LocalTime openingTime = operatingHours.getOpeningTime();
+        LocalTime closingTime = operatingHours.getClosingTime();
+        
+        if (openingTime == null || closingTime == null) {
+            return AvailabilityStatus.SIN_DISPONIBILIDAD;
+        }
+        
+        // Obtener el día de la semana
+        DayOfWeek dayOfWeek = DayOfWeek.valueOf(date.getDayOfWeek().name());
+        
+        // Filtrar barberos que están disponibles ese día
+        List<String> availableBarberIds = getAvailableBarbersForDay(barberIds, dayOfWeek);
+        
+        if (availableBarberIds.isEmpty()) {
+            return AvailabilityStatus.SIN_DISPONIBILIDAD;
+        }
+        
+        // Obtener solo las citas activas (excluyendo canceladas y no presentadas)
+        LocalDateTime startOfDay = date.atTime(openingTime);
+        LocalDateTime endOfDay = date.atTime(closingTime);
+        
+        List<Appointment> dayAppointments = appointmentRepository
+            .findByBarberIdInAndAppointmentDatetimeStartBetween(
+                availableBarberIds, 
+                startOfDay, 
+                endOfDay
+            ).stream()
+            .filter(appointment -> 
+                appointment.getStatus() != AppointmentStatus.CANCELLED && 
+                appointment.getStatus() != AppointmentStatus.NO_SHOW
+            )
+            .collect(Collectors.toList());
+        
+        // Calcular tiempo total disponible considerando horarios individuales de barberos
+        long totalAvailableMinutes = calculateTotalAvailableMinutes(availableBarberIds, dayOfWeek, openingTime, closingTime);
+        
+        if (totalAvailableMinutes == 0) {
+            return AvailabilityStatus.SIN_DISPONIBILIDAD;
+        }
+        
+        // Calcular tiempo total ocupado
+        long totalOccupiedMinutes = calculateOccupiedMinutes(dayAppointments);
+        
+        // Calcular porcentaje de ocupación
+        double occupancyPercentage = (double) totalOccupiedMinutes / totalAvailableMinutes;
+        
+        // Determinar estado basado en ocupación
+        if (occupancyPercentage >= 0.9) { // 90% o más ocupado
+            return AvailabilityStatus.SIN_DISPONIBILIDAD;
+        } else if (occupancyPercentage >= 0.5) { // 50% o más ocupado
+            return AvailabilityStatus.PARCIALMENTE_DISPONIBLE;
+        } else {
+            return AvailabilityStatus.LIBRE;
+        }
+    }
+    
+    /**
+     * Obtiene los barberos que están disponibles para un día específico
+     */
+    private List<String> getAvailableBarbersForDay(List<String> barberIds, DayOfWeek dayOfWeek) {
+        return barberIds.stream()
+            .filter(barberId -> {
+                // Verificar si el barbero está activo
+                Optional<Barber> barberOpt = barberRepository.findById(barberId);
+                if (barberOpt.isEmpty() || !barberOpt.get().getIsActive()) {
+                    return false;
+                }
+                
+                // Verificar si el barbero tiene disponibilidad para ese día
+                List<BarberAvailability> availabilities = barberAvailabilityRepository
+                    .findByBarberIdAndDayOfWeekAndAvailable(barberId, dayOfWeek);
+                
+                return !availabilities.isEmpty();
+            })
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Calcula el tiempo total disponible considerando horarios individuales de barberos
+     */
+    private long calculateTotalAvailableMinutes(List<String> barberIds, DayOfWeek dayOfWeek, 
+                                               LocalTime barbershopOpen, LocalTime barbershopClose) {
+        long totalMinutes = 0;
+        
+        for (String barberId : barberIds) {
+            List<BarberAvailability> availabilities = barberAvailabilityRepository
+                .findByBarberIdAndDayOfWeekAndAvailable(barberId, dayOfWeek);
+            
+            for (BarberAvailability availability : availabilities) {
+                // Usar el horario más restrictivo entre barbería y barbero
+                LocalTime effectiveStart = availability.getStartTime().isBefore(barbershopOpen) 
+                    ? barbershopOpen : availability.getStartTime();
+                LocalTime effectiveEnd = availability.getEndTime().isAfter(barbershopClose) 
+                    ? barbershopClose : availability.getEndTime();
+                
+                if (effectiveStart.isBefore(effectiveEnd)) {
+                    totalMinutes += Duration.between(effectiveStart, effectiveEnd).toMinutes();
+                }
+            }
+        }
+        
+        return totalMinutes;
+    }
+    private long calculateOccupiedMinutes(List<Appointment> appointments) {
+        return appointments.stream()
+            .mapToLong(appointment -> {
+                LocalDateTime start = appointment.getAppointmentDatetimeStart();
+                LocalDateTime end = appointment.getAppointmentDatetimeEnd();
+                return Duration.between(start, end).toMinutes();
+            })
+            .sum();
+    }
+    
+    /**
+     * Crea una respuesta donde todos los días están sin disponibilidad
+     */
+    private AvailabilityResponseDto createUnavailableResponse(LocalDate startDate, LocalDate endDate) {
+        List<DayAvailabilityDto> availabilityList = new ArrayList<>();
+        LocalDate currentDate = startDate;
+        
+        while (!currentDate.isAfter(endDate)) {
+            availabilityList.add(DayAvailabilityDto.builder()
+                .date(currentDate)
+                .status(AvailabilityStatus.SIN_DISPONIBILIDAD)
+                .build());
+            
+            currentDate = currentDate.plusDays(1);
+        }
+        
+        return AvailabilityResponseDto.builder()
+            .availability(availabilityList)
+            .build();
+    }
+
+    /**
+     * Obtiene la disponibilidad detallada de un día en bloques de 30 minutos
+     * 
+     * @param date Fecha para consultar la disponibilidad
+     * @param barbershopId ID de la barbería (se obtiene del primer barbero activo si no se especifica)
+     * @return Respuesta con los bloques de 30 minutos y su disponibilidad
+     */
+    public ApiResponseDto<DayAvailabilityResponseDto> getDayAvailabilityBySlots(LocalDate date, String barbershopId) {
+        log.info("Obteniendo disponibilidad por bloques para fecha: {} en barbería: {}", date, barbershopId);
+        
+        try {
+            // Si no se especifica barbershopId, obtener el de la primera barbería activa
+            if (barbershopId == null || barbershopId.isEmpty()) {
+                barbershopId = getDefaultBarbershopId();
+            }
+            
+            // Obtener horarios de operación de la barbería para el día
+            java.time.DayOfWeek javaDayOfWeek = date.getDayOfWeek();
+            
+            Optional<BarbershopOperatingHours> operatingHoursOpt = operatingHoursRepository
+                .findByBarbershop_BarbershopIdAndDayOfWeek(barbershopId, javaDayOfWeek);
+            
+            if (operatingHoursOpt.isEmpty() || operatingHoursOpt.get().getIsClosed()) {
+                log.info("Barbería cerrada el día: {}", javaDayOfWeek);
+                return ApiResponseDto.<DayAvailabilityResponseDto>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Disponibilidad obtenida exitosamente")
+                    .data(DayAvailabilityResponseDto.builder()
+                        .date(date)
+                        .slots(new ArrayList<>())
+                        .build())
+                    .build();
+            }
+            
+            BarbershopOperatingHours operatingHours = operatingHoursOpt.get();
+            LocalTime openingTime = operatingHours.getOpeningTime();
+            LocalTime closingTime = operatingHours.getClosingTime();
+            
+            if (openingTime == null || closingTime == null) {
+                log.warn("Horarios de apertura/cierre no definidos para barbería: {} día: {}", barbershopId, javaDayOfWeek);
+                return ApiResponseDto.<DayAvailabilityResponseDto>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Disponibilidad obtenida exitosamente")
+                    .data(DayAvailabilityResponseDto.builder()
+                        .date(date)
+                        .slots(new ArrayList<>())
+                        .build())
+                    .build();
+            }
+            
+            // Obtener todos los barberos activos de la barbería
+             List<Barber> activeBarbers = barberRepository.findByBarbershopIdAndActive(barbershopId);
+            
+            if (activeBarbers.isEmpty()) {
+                log.warn("No hay barberos activos en la barbería: {}", barbershopId);
+                return ApiResponseDto.<DayAvailabilityResponseDto>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Disponibilidad obtenida exitosamente")
+                    .data(DayAvailabilityResponseDto.builder()
+                        .date(date)
+                        .slots(new ArrayList<>())
+                        .build())
+                    .build();
+            }
+            
+            List<String> barberIds = activeBarbers.stream()
+                .map(Barber::getBarberId)
+                .collect(Collectors.toList());
+            
+            // Obtener todas las citas activas del día para todos los barberos
+            LocalDateTime startOfDay = date.atTime(openingTime);
+            LocalDateTime endOfDay = date.atTime(closingTime);
+            
+            List<Appointment> dayAppointments = appointmentRepository
+                .findByBarberIdInAndAppointmentDatetimeStartBetween(barberIds, startOfDay, endOfDay)
+                .stream()
+                .filter(appointment -> 
+                    appointment.getStatus() != AppointmentStatus.CANCELLED && 
+                    appointment.getStatus() != AppointmentStatus.NO_SHOW
+                )
+                .collect(Collectors.toList());
+            
+            // Generar bloques de 30 minutos
+            List<DayAvailabilitySlotDto> slots = generateTimeSlots(
+                openingTime, closingTime, barberIds, javaDayOfWeek, dayAppointments, date
+            );
+            
+            DayAvailabilityResponseDto responseData = DayAvailabilityResponseDto.builder()
+                .date(date)
+                .slots(slots)
+                .build();
+            
+            log.info("Disponibilidad por bloques generada exitosamente. Total de bloques: {}", slots.size());
+            
+            return ApiResponseDto.<DayAvailabilityResponseDto>builder()
+                .status(HttpStatus.OK.value())
+                .message("Disponibilidad obtenida exitosamente")
+                .data(responseData)
+                .build();
+                
+        } catch (Exception e) {
+            log.error("Error al obtener disponibilidad por bloques para fecha: {}", date, e);
+            throw new BusinessLogicException("Error al obtener la disponibilidad: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Genera los bloques de tiempo de 30 minutos y determina su disponibilidad
+     */
+    private List<DayAvailabilitySlotDto> generateTimeSlots(
+            LocalTime openingTime, 
+            LocalTime closingTime, 
+            List<String> barberIds, 
+            java.time.DayOfWeek dayOfWeek,
+            List<Appointment> dayAppointments,
+            LocalDate consultedDate) {
+        
+        List<DayAvailabilitySlotDto> slots = new ArrayList<>();
+        LocalTime currentTime = openingTime;
+        LocalTime now = LocalTime.now();
+        LocalDate today = LocalDate.now();
+        
+        // Generar bloques de 30 minutos
+        while (currentTime.isBefore(closingTime)) {
+            LocalTime slotEndTime = currentTime.plusMinutes(30);
+            
+            // Si el bloque se extiende más allá del horario de cierre, ajustar
+            if (slotEndTime.isAfter(closingTime)) {
+                slotEndTime = closingTime;
+            }
+            
+            boolean isAvailable = isSlotAvailable(currentTime, slotEndTime, barberIds, dayOfWeek, dayAppointments);
+            
+            // Si la fecha consultada es hoy, marcar como no disponible los slots anteriores a la hora actual
+            if (consultedDate.equals(today) && currentTime.isBefore(now)) {
+                isAvailable = false;
+            }
+            
+            slots.add(DayAvailabilitySlotDto.builder()
+                .time(currentTime)
+                .available(isAvailable)
+                .build());
+            
+            currentTime = currentTime.plusMinutes(30);
+        }
+        
+        return slots;
+    }
+    
+    /**
+     * Determina si un bloque de tiempo específico está disponible
+     * (al menos un barbero debe estar libre en ese horario)
+     */
+    private boolean isSlotAvailable(
+            LocalTime slotStart, 
+            LocalTime slotEnd, 
+            List<String> barberIds, 
+            java.time.DayOfWeek dayOfWeek,
+            List<Appointment> dayAppointments) {
+        
+        // Verificar cada barbero
+        for (String barberId : barberIds) {
+            // Convertir java.time.DayOfWeek al enum personalizado
+            com.barbershop.features.barber.model.DayOfWeek customDayOfWeek = 
+                com.barbershop.features.barber.model.DayOfWeek.fromValue(dayOfWeek.getValue());
+            
+            // Verificar si el barbero está disponible ese día de la semana
+            List<BarberAvailability> barberAvailabilities = barberAvailabilityRepository
+                .findByBarberIdAndDayOfWeekAndAvailable(barberId, customDayOfWeek);
+            
+            if (barberAvailabilities.isEmpty()) {
+                continue; // Este barbero no trabaja este día
+            }
+            
+            // Verificar si el barbero está disponible en este horario específico
+            boolean barberAvailableInSlot = barberAvailabilities.stream()
+                .anyMatch(availability -> 
+                    !slotStart.isBefore(availability.getStartTime()) && 
+                    !slotEnd.isAfter(availability.getEndTime())
+                );
+            
+            if (!barberAvailableInSlot) {
+                continue; // Este barbero no está disponible en este horario
+            }
+            
+            // Verificar si el barbero tiene citas que se solapen con este bloque
+            boolean hasConflictingAppointment = dayAppointments.stream()
+                .filter(appointment -> appointment.getBarberId().equals(barberId))
+                .anyMatch(appointment -> {
+                    LocalTime appointmentStart = appointment.getAppointmentDatetimeStart().toLocalTime();
+                    LocalTime appointmentEnd = appointment.getAppointmentDatetimeEnd().toLocalTime();
+                    
+                    // Verificar solapamiento: el bloque se solapa si:
+                    // - El inicio del bloque está antes del fin de la cita Y
+                    // - El fin del bloque está después del inicio de la cita
+                    return slotStart.isBefore(appointmentEnd) && slotEnd.isAfter(appointmentStart);
+                });
+            
+            if (!hasConflictingAppointment) {
+                return true; // Al menos un barbero está libre en este bloque
+            }
+        }
+        
+        return false; // Ningún barbero está disponible en este bloque
+    }
+    
+    /**
+     * Obtiene la disponibilidad de barberos con tiempo libre hasta su próxima cita
+     * @param dateTime Fecha y hora para verificar disponibilidad
+     * @return Lista de barberos con su disponibilidad y tiempo libre
+     */
+    public BarbersAvailabilityResponseDto getBarbersAvailabilityWithFreeTime(LocalDateTime dateTime) {
+        log.info("Obteniendo disponibilidad de barberos para fecha: {}", dateTime);
+        
+        LocalDate date = dateTime.toLocalDate();
+        LocalTime time = dateTime.toLocalTime();
+        
+        // Obtener todos los barberos activos
+        List<Barber> activeBarbers = barberRepository.findByBarbershopIdAndActiveWithUser(getDefaultBarbershopId());
+        
+        // Obtener todas las citas del día para optimizar consultas
+        List<String> barberIds = activeBarbers.stream()
+            .map(Barber::getBarberId)
+            .collect(Collectors.toList());
+            
+        Map<String, List<Appointment>> appointmentsByBarber = appointmentRepository
+            .findByBarberIdInAndAppointmentDatetimeStartBetween(
+                barberIds,
+                date.atStartOfDay(),
+                date.atTime(23, 59, 59)
+            )
+            .stream()
+            .filter(appointment -> List.of(AppointmentStatus.SCHEDULED, AppointmentStatus.IN_PROGRESS).contains(appointment.getStatus()))
+            .collect(Collectors.groupingBy(Appointment::getBarberId));
+        
+        // Obtener horarios de operación de la barbería para el día
+        DayOfWeek dayOfWeek = DayOfWeek.valueOf(date.getDayOfWeek().name());
+        
+        List<BarberAvailabilityDto> barberAvailabilities = activeBarbers.stream()
+            .map(barber -> calculateBarberAvailability(barber, dateTime, appointmentsByBarber.getOrDefault(barber.getBarberId(), new ArrayList<>()), dayOfWeek))
+            .collect(Collectors.toList());
+        
+        return BarbersAvailabilityResponseDto.builder()
+            .dateTime(dateTime)
+            .barbers(barberAvailabilities)
+            .build();
+    }
+    
+    /**
+     * Calcula la disponibilidad de un barbero específico
+     */
+    private BarberAvailabilityDto calculateBarberAvailability(
+            Barber barber, 
+            LocalDateTime requestedDateTime, 
+            List<Appointment> barberAppointments,
+            DayOfWeek dayOfWeek) {
+        
+        LocalTime requestedTime = requestedDateTime.toLocalTime();
+        LocalDate requestedDate = requestedDateTime.toLocalDate();
+        
+        // Verificar si el barbero está ocupado en el horario solicitado
+        boolean isOccupied = barberAppointments.stream()
+            .anyMatch(appointment -> {
+                LocalTime appointmentStart = appointment.getAppointmentDatetimeStart().toLocalTime();
+                LocalTime appointmentEnd = appointment.getAppointmentDatetimeEnd().toLocalTime();
+                return !requestedTime.isBefore(appointmentStart) && requestedTime.isBefore(appointmentEnd);
+            });
+        
+        if (isOccupied) {
+            return BarberAvailabilityDto.builder()
+                .id(barber.getBarberId())
+                .name(getBarberName(barber))
+                .available(false)
+                .freeMinutes(0)
+                .build();
+        }
+        
+        // Buscar la próxima cita del barbero después del horario solicitado
+        Optional<Appointment> nextAppointment = barberAppointments.stream()
+            .filter(appointment -> appointment.getAppointmentDatetimeStart().toLocalTime().isAfter(requestedTime))
+            .min((a1, a2) -> a1.getAppointmentDatetimeStart().compareTo(a2.getAppointmentDatetimeStart()));
+        
+        int freeMinutes;
+        if (nextAppointment.isPresent()) {
+            // Calcular tiempo hasta la próxima cita
+            LocalTime nextAppointmentTime = nextAppointment.get().getAppointmentDatetimeStart().toLocalTime();
+            freeMinutes = (int) Duration.between(requestedTime, nextAppointmentTime).toMinutes();
+        } else {
+            // No hay más citas, calcular tiempo hasta el cierre de la barbería
+            LocalTime closingTime = getBarbershopClosingTime(barber.getBarbershopId(), dayOfWeek);
+            if (closingTime != null && requestedTime.isBefore(closingTime)) {
+                freeMinutes = (int) Duration.between(requestedTime, closingTime).toMinutes();
+            } else {
+                // Si no hay horario de cierre definido o ya pasó, asumir hasta medianoche
+                freeMinutes = (int) Duration.between(requestedTime, LocalTime.of(23, 59)).toMinutes();
+            }
+        }
+        
+        return BarberAvailabilityDto.builder()
+            .id(barber.getBarberId())
+            .name(getBarberName(barber))
+            .available(true)
+            .freeMinutes(Math.max(0, freeMinutes))
+            .build();
+    }
+    
+    /**
+     * Obtiene el nombre completo del barbero
+     */
+    private String getBarberName(Barber barber) {
+        return userRepository.findById(barber.getUserId())
+            .map(user -> String.format("%s %s", 
+                user.getFirstName() != null ? user.getFirstName() : "",
+                user.getLastName() != null ? user.getLastName() : "").trim())
+            .orElse("Barbero " + barber.getBarberId());
+    }
+    
+    /**
+     * Obtiene la hora de cierre de la barbería para un día específico
+     */
+    private LocalTime getBarbershopClosingTime(String barbershopId, DayOfWeek dayOfWeek) {
+        // Convertir el enum personalizado a java.time.DayOfWeek
+        java.time.DayOfWeek javaDayOfWeek = mapToJavaDayOfWeek(dayOfWeek);
+        
+        return operatingHoursRepository.findByBarbershop_BarbershopIdAndDayOfWeek(barbershopId, javaDayOfWeek)
+            .filter(hours -> !hours.getIsClosed())
+            .map(BarbershopOperatingHours::getClosingTime)
+            .orElse(LocalTime.of(18, 0)); // Hora por defecto: 18:00
+    }
+
+    /**
+     * Convierte el enum personalizado DayOfWeek a java.time.DayOfWeek
+     */
+    private java.time.DayOfWeek mapToJavaDayOfWeek(DayOfWeek customDayOfWeek) {
+        switch (customDayOfWeek) {
+            case MONDAY: return java.time.DayOfWeek.MONDAY;
+            case TUESDAY: return java.time.DayOfWeek.TUESDAY;
+            case WEDNESDAY: return java.time.DayOfWeek.WEDNESDAY;
+            case THURSDAY: return java.time.DayOfWeek.THURSDAY;
+            case FRIDAY: return java.time.DayOfWeek.FRIDAY;
+            case SATURDAY: return java.time.DayOfWeek.SATURDAY;
+            case SUNDAY: return java.time.DayOfWeek.SUNDAY;
+            default: throw new IllegalArgumentException("Día de la semana no válido: " + customDayOfWeek);
+        }
+    }
+
+    /**
+     * Obtiene el ID de la barbería por defecto (primera barbería activa)
+     */
+    private String getDefaultBarbershopId() {
+        return barbershopRepository.findAll().stream()
+            .findFirst()
+            .map(barbershop -> barbershop.getBarbershopId())
+            .orElseThrow(() -> new ResourceNotFoundException("No se encontró ninguna barbería activa"));
     }
 }

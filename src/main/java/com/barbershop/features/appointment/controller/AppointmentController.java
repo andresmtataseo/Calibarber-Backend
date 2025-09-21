@@ -2,6 +2,9 @@ package com.barbershop.features.appointment.controller;
 
 import com.barbershop.common.dto.ApiResponseDto;
 import com.barbershop.features.appointment.dto.AppointmentResponseDto;
+import com.barbershop.features.appointment.dto.AvailabilityResponseDto;
+import com.barbershop.features.appointment.dto.BarbersAvailabilityResponseDto;
+import com.barbershop.features.appointment.dto.DayAvailabilityResponseDto;
 import com.barbershop.features.appointment.dto.request.CreateAppointmentRequestDto;
 import com.barbershop.features.appointment.dto.request.UpdateAppointmentRequestDto;
 import com.barbershop.features.appointment.model.enums.AppointmentStatus;
@@ -18,10 +21,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -635,6 +641,225 @@ public class    AppointmentController {
                         .data(todayAppointmentsCount)
                         .build()
         );
+    }
+
+    /**
+     * Obtiene la disponibilidad de una barbería por días en un rango de fechas
+     *
+     * Permisos de acceso:
+     * - ADMIN: Puede ver la disponibilidad de cualquier barbería
+     * - BARBER: Puede ver la disponibilidad de su propia barbería
+     * - CLIENT: Puede ver la disponibilidad de cualquier barbería para agendar citas
+     *
+     * @param barbershopId ID de la barbería
+     * @param startDate Fecha inicial del rango (formato: yyyy-MM-dd)
+     * @param endDate Fecha final del rango (formato: yyyy-MM-dd)
+     * @param httpRequest Request HTTP para extraer el token de autenticación
+     * @return ResponseEntity con la disponibilidad por días
+     */
+    @Operation(
+            summary = "Obtener disponibilidad de barbería por días",
+            description = "<strong>Permisos:</strong><br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver la disponibilidad de cualquier barbería<br/>" +
+                         "• <strong>BARBER:</strong> Puede ver la disponibilidad de su propia barbería<br/>" +
+                         "• <strong>CLIENT:</strong> Puede ver la disponibilidad de cualquier barbería para agendar citas<br/><br/>" +
+                         "<strong>Estados de disponibilidad:</strong><br/>" +
+                         "• <strong>LIBRE:</strong> Menos del 50% de ocupación<br/>" +
+                         "• <strong>PARCIALMENTE_DISPONIBLE:</strong> Entre 50% y 90% de ocupación<br/>" +
+                         "• <strong>SIN_DISPONIBILIDAD:</strong> Más del 90% de ocupación o barbería cerrada",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Disponibilidad obtenida exitosamente",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Parámetros de fecha inválidos"
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Barbería no encontrada"
+                    )
+            }
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/availability")
+    public ResponseEntity<ApiResponseDto<AvailabilityResponseDto>> getBarbershopAvailability(
+            @Parameter(description = "Fecha inicial (yyyy-MM-dd)", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "Fecha final (yyyy-MM-dd)", required = true)
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            HttpServletRequest httpRequest) {
+        
+        try {
+            // Comentamos la validación de token para hacer el endpoint público
+            AvailabilityResponseDto availability = appointmentService.getBarbershopAvailability(startDate, endDate);
+            
+            ApiResponseDto<AvailabilityResponseDto> response = ApiResponseDto.<AvailabilityResponseDto>builder()
+                    .status(HttpStatus.OK.value())
+                    .message(String.format("Disponibilidad obtenida exitosamente para %d días", availability.getAvailability().size()))
+                    .timestamp(LocalDateTime.now())
+                    .path(httpRequest.getRequestURI())
+                    .data(availability)
+                    .build();
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            ApiResponseDto<AvailabilityResponseDto> response = ApiResponseDto.<AvailabilityResponseDto>builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .message("Error en los parámetros: " + e.getMessage())
+                    .timestamp(LocalDateTime.now())
+                    .path(httpRequest.getRequestURI())
+                    .build();
+            
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * Obtiene la disponibilidad detallada de un día específico en bloques de 30 minutos
+     *
+     * Este endpoint devuelve todos los bloques de 30 minutos disponibles para el día solicitado,
+     * indicando si cada bloque está disponible (al menos un barbero libre) o no disponible
+     * (todos los barberos ocupados).
+     *
+     * @param date Fecha para consultar la disponibilidad (formato: yyyy-MM-dd)
+     * @param barbershopId ID de la barbería (opcional, se usa la primera barbería activa si no se especifica)
+     * @param httpRequest Request HTTP para extraer información de la petición
+     * @return Respuesta con los bloques de 30 minutos y su disponibilidad
+     */
+    @Operation(
+            summary = "Obtener disponibilidad diaria en bloques de 30 minutos",
+            description = "Devuelve la disponibilidad detallada de un día específico dividida en bloques de 30 minutos. " +
+                         "Cada bloque indica si está disponible (al menos un barbero libre) o no disponible (todos los barberos ocupados). " +
+                         "El horario se basa en los horarios de operación de la barbería configurados para ese día de la semana.",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Disponibilidad obtenida exitosamente",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Parámetros inválidos"
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Barbería no encontrada"
+                    )
+            }
+    )
+    @GetMapping("/availability/day")
+    public ResponseEntity<ApiResponseDto<DayAvailabilityResponseDto>> getDayAvailabilityBySlots(
+            @Parameter(description = "Fecha para consultar disponibilidad (yyyy-MM-dd)", required = true, example = "2025-01-21")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @Parameter(description = "ID de la barbería (opcional)", required = false)
+            @RequestParam(required = false) String barbershopId,
+            HttpServletRequest httpRequest) {
+        
+        try {
+            log.info("Solicitando disponibilidad por bloques para fecha: {} en barbería: {}", date, barbershopId);
+            
+            ApiResponseDto<DayAvailabilityResponseDto> response = appointmentService.getDayAvailabilityBySlots(date, barbershopId);
+            
+            // Actualizar información de la respuesta HTTP
+            response.setTimestamp(LocalDateTime.now());
+            response.setPath(httpRequest.getRequestURI());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            log.warn("Error en parámetros para disponibilidad por bloques: {}", e.getMessage());
+            ApiResponseDto<DayAvailabilityResponseDto> response = ApiResponseDto.<DayAvailabilityResponseDto>builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .message("Error en los parámetros: " + e.getMessage())
+                    .timestamp(LocalDateTime.now())
+                    .path(httpRequest.getRequestURI())
+                    .build();
+            
+            return ResponseEntity.badRequest().body(response);
+            
+        } catch (Exception e) {
+            log.error("Error interno al obtener disponibilidad por bloques para fecha: {}", date, e);
+            ApiResponseDto<DayAvailabilityResponseDto> response = ApiResponseDto.<DayAvailabilityResponseDto>builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Error interno del servidor: " + e.getMessage())
+                    .timestamp(LocalDateTime.now())
+                    .path(httpRequest.getRequestURI())
+                    .build();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    /**
+     * Obtiene la disponibilidad de barberos con tiempo libre para una fecha y hora específica
+     *
+     * @param dateTime Fecha y hora en formato ISO (ejemplo: "2025-09-21T14:30:00")
+     * @return Respuesta con la disponibilidad de barberos y tiempo libre hasta su próxima cita
+     */
+    @GetMapping("/availability/barbers")
+    @Operation(
+        summary = "Obtener disponibilidad de barberos",
+        description = "Obtiene la disponibilidad de todos los barberos para una fecha y hora específica, " +
+                     "incluyendo el tiempo libre hasta su próxima cita",
+        responses = {
+            @ApiResponse(
+                responseCode = "200",
+                description = "Disponibilidad obtenida exitosamente",
+                content = @Content(schema = @Schema(implementation = BarbersAvailabilityResponseDto.class))
+            ),
+            @ApiResponse(
+                responseCode = "400",
+                description = "Parámetros inválidos",
+                content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+            ),
+            @ApiResponse(
+                responseCode = "500",
+                description = "Error interno del servidor",
+                content = @Content(schema = @Schema(implementation = ApiResponseDto.class))
+            )
+        }
+    )
+    public ResponseEntity<?> getBarbersAvailability(
+            @Parameter(description = "Fecha y hora en formato ISO (ejemplo: 2025-09-21T14:30:00)", required = true)
+            @RequestParam("dateTime") 
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) 
+            LocalDateTime dateTime) {
+        
+        try {
+            log.info("Obteniendo disponibilidad de barberos para fecha y hora: {}", dateTime);
+            
+            BarbersAvailabilityResponseDto availability = appointmentService.getBarbersAvailabilityWithFreeTime(dateTime);
+            
+            log.info("Disponibilidad obtenida exitosamente para {} barberos", availability.getBarbers().size());
+            
+            return ResponseEntity.ok(availability);
+            
+        } catch (IllegalArgumentException e) {
+            log.error("Error de validación al obtener disponibilidad de barberos: {}", e.getMessage());
+            
+            ApiResponseDto response = ApiResponseDto.builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .message("Error de validación: " + e.getMessage())
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            
+        } catch (Exception e) {
+            log.error("Error interno al obtener disponibilidad de barberos", e);
+            
+            ApiResponseDto response = ApiResponseDto.builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Error interno del servidor al obtener disponibilidad de barberos")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     /**
