@@ -3,6 +3,7 @@ package com.barbershop.features.appointment.service;
 import com.barbershop.common.dto.ApiResponseDto;
 import com.barbershop.common.exception.ResourceNotFoundException;
 import com.barbershop.common.exception.BusinessLogicException;
+import com.barbershop.common.service.EmailService;
 import com.barbershop.features.auth.exception.InvalidCredentialsException;
 import com.barbershop.features.appointment.dto.AppointmentResponseDto;
 import com.barbershop.features.appointment.dto.BarberAvailabilityDto;
@@ -69,6 +70,7 @@ public class AppointmentService {
     private final BarbershopRepository barbershopRepository;
     private final BarbershopOperatingHoursRepository operatingHoursRepository;
     private final BarberAvailabilityRepository barberAvailabilityRepository;
+    private final EmailService emailService;
 
     /**
      * Crea una nueva cita
@@ -101,6 +103,15 @@ public class AppointmentService {
         
         AppointmentResponseDto responseDto = appointmentMapper.toResponseDto(savedAppointment);
         
+        // Enviar notificación por email al barbero
+        try {
+            enviarNotificacionEmailBarbero(savedAppointment, request);
+        } catch (Exception e) {
+            log.warn("Error al enviar notificación de email al barbero para la cita {}: {}", 
+                    savedAppointment.getAppointmentId(), e.getMessage());
+            // No fallar la creación de la cita por un error de email
+        }
+        
         log.info("Cita creada exitosamente con ID: {}", savedAppointment.getAppointmentId());
         return ApiResponseDto.<AppointmentResponseDto>builder()
                 .status(HttpStatus.CREATED.value())
@@ -108,6 +119,57 @@ public class AppointmentService {
                 .data(responseDto)
                 .timestamp(LocalDateTime.now())
                 .build();
+    }
+
+    /**
+     * Envía notificación por email al barbero cuando se crea una nueva cita
+     * @param appointment Cita creada
+     * @param request Datos de la solicitud original
+     */
+    private void enviarNotificacionEmailBarbero(Appointment appointment, CreateAppointmentRequestDto request) {
+        try {
+            // Obtener información del barbero
+            Barber barber = barberRepository.findById(request.getBarberId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Barbero no encontrado"));
+            
+            User barberUser = userRepository.findById(barber.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario del barbero no encontrado"));
+            
+            // Obtener información del cliente
+            User clientUser = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario cliente no encontrado"));
+            
+            // Obtener información del servicio
+            com.barbershop.features.service.model.Service service = serviceRepository.findById(request.getServiceId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Servicio no encontrado"));
+            
+            // Preparar datos para el email
+            String emailBarbero = barberUser.getEmail();
+            String nombreBarbero = barberUser.getFirstName() + " " + barberUser.getLastName();
+            String nombreCliente = clientUser.getFirstName() + " " + clientUser.getLastName();
+            String emailCliente = clientUser.getEmail();
+            String telefonoCliente = clientUser.getPhoneNumber();
+            String fechaCita = appointment.getAppointmentDatetimeStart().toString();
+            String nombreServicio = service.getName();
+            Integer duracionMinutos = request.getDurationMinutes();
+            String precio = request.getPrice().toString();
+            String notas = request.getNotes();
+            
+            // Enviar el email
+            emailService.enviarNotificacionCitaBarbero(
+                    emailBarbero, nombreBarbero, nombreCliente, emailCliente, 
+                    telefonoCliente, fechaCita, nombreServicio, duracionMinutos, 
+                    precio, notas
+            );
+            
+            log.info("Notificación de email enviada exitosamente al barbero {} para la cita {}", 
+                    emailBarbero, appointment.getAppointmentId());
+            
+        } catch (Exception e) {
+            log.error("Error al enviar notificación de email al barbero para la cita {}: {}", 
+                    appointment.getAppointmentId(), e.getMessage(), e);
+            throw e; // Re-lanzar para que sea capturado por el método principal
+        }
     }
 
     /**

@@ -7,6 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -273,13 +276,371 @@ public class EmailService {
                         <div class="footer">
                             <p>Este es un mensaje automático del sistema. Por favor, no responda a este correo electrónico.</p>
                             <p>Para consultas o soporte, contáctenos a través de nuestros canales oficiales.</p>
-                            <p class="copyright">&copy; 2024 Calibarber Barbershop. Todos los derechos reservados.</p>
+                            <p class="copyright">&copy; 2025 Calibarber Barbershop. Todos los derechos reservados.</p>
                         </div>
                     </div>
                 </div>
             </body>
             </html>
             """, nombreUsuario, token, tiempoExpiracion, token);
+    }
+
+    /**
+     * Envía un correo de notificación al barbero cuando se crea una nueva cita
+     * @param emailBarbero Email del barbero
+     * @param nombreBarbero Nombre completo del barbero
+     * @param nombreCliente Nombre completo del cliente
+     * @param emailCliente Email del cliente
+     * @param telefonoCliente Teléfono del cliente (opcional)
+     * @param fechaCita Fecha y hora de la cita
+     * @param nombreServicio Nombre del servicio
+     * @param duracionMinutos Duración del servicio en minutos
+     * @param precio Precio del servicio
+     * @param notas Notas adicionales (opcional)
+     */
+    public void enviarNotificacionCitaBarbero(String emailBarbero, String nombreBarbero, 
+                                            String nombreCliente, String emailCliente, 
+                                            String telefonoCliente, String fechaCita, 
+                                            String nombreServicio, Integer duracionMinutos, 
+                                            String precio, String notas) {
+        try {
+            String asunto = "Nueva Cita Programada - " + nombreCliente;
+            String contenidoHtml = construirHtmlNotificacionCita(nombreBarbero, nombreCliente, 
+                                                               emailCliente, telefonoCliente, 
+                                                               fechaCita, nombreServicio, 
+                                                               duracionMinutos, precio, notas);
+            
+            enviarCorreoHtml(emailBarbero, asunto, contenidoHtml);
+            
+            log.info("Notificación de cita enviada exitosamente al barbero: {}", emailBarbero);
+            
+        } catch (Exception e) {
+            log.error("Error al enviar notificación de cita al barbero {}: {}", emailBarbero, e.getMessage(), e);
+            throw new RuntimeException("Error al enviar notificación de cita al barbero", e);
+        }
+    }
+
+    /**
+     * Construye el contenido HTML para la notificación de cita al barbero
+     * @param nombreBarbero Nombre del barbero
+     * @param nombreCliente Nombre del cliente
+     * @param emailCliente Email del cliente
+     * @param telefonoCliente Teléfono del cliente
+     * @param fechaCita Fecha y hora de la cita
+     * @param nombreServicio Nombre del servicio
+     * @param duracionMinutos Duración en minutos
+     * @param precio Precio del servicio
+     * @param notas Notas adicionales
+     * @return Contenido HTML del correo
+     */
+    private String construirHtmlNotificacionCita(String nombreBarbero, String nombreCliente, 
+                                               String emailCliente, String telefonoCliente, 
+                                               String fechaCita, String nombreServicio, 
+                                               Integer duracionMinutos, String precio, String notas) {
+        
+        // Formatear la fecha para mostrar de manera más legible
+        String fechaFormateada = formatearFechaCita(fechaCita);
+        String telefonoTexto = (telefonoCliente != null && !telefonoCliente.trim().isEmpty()) 
+                              ? telefonoCliente : "No proporcionado";
+        String notasTexto = (notas != null && !notas.trim().isEmpty()) 
+                           ? notas : "Sin notas adicionales";
+        
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { 
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                        line-height: 1.6; 
+                        color: #2c2c2c; 
+                        background-color: #f5f5f5;
+                    }
+                    .email-wrapper { 
+                        background-color: #f5f5f5; 
+                        padding: 40px 20px; 
+                        min-height: 100vh; 
+                    }
+                    .container { 
+                        max-width: 600px; 
+                        margin: 0 auto; 
+                        background-color: #ffffff; 
+                        border-radius: 12px; 
+                        overflow: hidden; 
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); 
+                    }
+                    .header { 
+                        background: linear-gradient(135deg, #1a1a1a 0%%, #2d2d2d 100%%); 
+                        color: #ffffff; 
+                        padding: 40px 30px; 
+                        text-align: center; 
+                        position: relative;
+                    }
+                    .header::before {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="%%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="1" fill="%%23ffffff" opacity="0.05"/><circle cx="50" cy="10" r="0.5" fill="%%23ffffff" opacity="0.03"/></pattern></defs><rect width="100" height="100" fill="url(%%23grain)"/></svg>');
+                        opacity: 0.3;
+                    }
+                    .logo { 
+                        font-size: 32px; 
+                        font-weight: 700; 
+                        letter-spacing: 2px; 
+                        margin-bottom: 8px;
+                        position: relative;
+                        z-index: 1;
+                    }
+                    .subtitle { 
+                        font-size: 16px; 
+                        font-weight: 300; 
+                        opacity: 0.9; 
+                        letter-spacing: 1px;
+                        position: relative;
+                        z-index: 1;
+                    }
+                    .content { 
+                        padding: 40px 30px; 
+                        background-color: #ffffff; 
+                    }
+                    .greeting { 
+                        font-size: 20px; 
+                        margin-bottom: 25px; 
+                        color: #2c2c2c; 
+                        font-weight: 600;
+                    }
+                    .notification-message { 
+                        font-size: 16px; 
+                        margin-bottom: 30px; 
+                        color: #555555; 
+                        line-height: 1.7; 
+                    }
+                    .appointment-card { 
+                        background: linear-gradient(135deg, #d4af37 0%%, #f4d03f 100%%); 
+                        color: #1a1a1a; 
+                        padding: 25px; 
+                        border-radius: 12px; 
+                        margin: 30px 0; 
+                        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+                        border: 2px solid #d4af37;
+                    }
+                    .appointment-title { 
+                        font-size: 22px; 
+                        font-weight: 700; 
+                        text-align: center; 
+                        margin-bottom: 20px;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                    }
+                    .appointment-details { 
+                        background-color: rgba(255, 255, 255, 0.9); 
+                        padding: 20px; 
+                        border-radius: 8px; 
+                        margin-top: 15px;
+                    }
+                    .detail-row { 
+                        display: flex; 
+                        justify-content: space-between; 
+                        align-items: center; 
+                        padding: 8px 0; 
+                        border-bottom: 1px solid #e0e0e0;
+                    }
+                    .detail-row:last-child { 
+                        border-bottom: none; 
+                    }
+                    .detail-label { 
+                        font-weight: 600; 
+                        color: #2c2c2c; 
+                        min-width: 120px;
+                    }
+                    .detail-value { 
+                        color: #555555; 
+                        text-align: right; 
+                        flex: 1;
+                    }
+                    .client-info { 
+                        background-color: #f8f9fa; 
+                        padding: 20px; 
+                        border-radius: 8px; 
+                        margin: 25px 0;
+                        border-left: 4px solid #d4af37;
+                    }
+                    .client-info h3 { 
+                        color: #2c2c2c; 
+                        margin-bottom: 15px; 
+                        font-size: 18px; 
+                        font-weight: 600;
+                    }
+                    .notes-section { 
+                        background-color: #f1f3f4; 
+                        padding: 20px; 
+                        border-radius: 8px; 
+                        margin: 25px 0;
+                        border: 1px solid #e0e0e0;
+                    }
+                    .notes-section h4 { 
+                        color: #2c2c2c; 
+                        margin-bottom: 10px; 
+                        font-size: 16px; 
+                        font-weight: 600;
+                    }
+                    .notes-text { 
+                        color: #666666; 
+                        font-size: 14px; 
+                        font-style: italic;
+                    }
+                    .action-buttons { 
+                        text-align: center; 
+                        margin: 30px 0; 
+                    }
+                    .btn { 
+                        background: linear-gradient(135deg, #d4af37 0%%, #f4d03f 100%%); 
+                        color: #1a1a1a; 
+                        padding: 12px 25px; 
+                        border-radius: 6px; 
+                        text-decoration: none; 
+                        font-weight: 600; 
+                        display: inline-block; 
+                        margin: 0 10px;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+                        font-size: 14px;
+                    }
+                    .btn:hover { 
+                        transform: translateY(-2px); 
+                        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4); 
+                    }
+                    .footer { 
+                        background-color: #1a1a1a; 
+                        color: #cccccc; 
+                        text-align: center; 
+                        padding: 30px; 
+                        font-size: 13px; 
+                    }
+                    .footer p { 
+                        margin-bottom: 8px; 
+                    }
+                    .footer .copyright { 
+                        color: #d4af37; 
+                        font-weight: 500; 
+                    }
+                    @media only screen and (max-width: 600px) {
+                        .email-wrapper { padding: 20px 10px; }
+                        .container { margin: 0 10px; }
+                        .header, .content { padding: 25px 20px; }
+                        .logo { font-size: 28px; }
+                        .appointment-card { padding: 20px; }
+                        .appointment-details { padding: 15px; }
+                        .detail-row { flex-direction: column; align-items: flex-start; }
+                        .detail-value { text-align: left; margin-top: 5px; }
+                        .btn { display: block; margin: 10px 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="email-wrapper">
+                    <div class="container">
+                        <div class="header">
+                            <div class="logo">CALIBARBER</div>
+                            <div class="subtitle">BARBERSHOP PREMIUM</div>
+                        </div>
+                        <div class="content">
+                            <div class="greeting">
+                                Hola <strong>%s</strong>,
+                            </div>
+                            
+                            <div class="notification-message">
+                                Te informamos que se ha programado una nueva cita en tu agenda. 
+                                A continuación encontrarás todos los detalles de la reservación.
+                            </div>
+                            
+                            <div class="appointment-card">
+                                <div class="appointment-title">Nueva Cita Programada</div>
+                                <div class="appointment-details">
+                                    <div class="detail-row">
+                                        <span class="detail-label">Fecha y Hora:</span>
+                                        <span class="detail-value"><strong>%s</strong></span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Servicio:</span>
+                                        <span class="detail-value"><strong>%s</strong></span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Duración:</span>
+                                        <span class="detail-value">%d minutos</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <span class="detail-label">Precio:</span>
+                                        <span class="detail-value"><strong>$%s</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="client-info">
+                                <h3>Información del Cliente</h3>
+                                <div class="detail-row">
+                                    <span class="detail-label">Nombre:</span>
+                                    <span class="detail-value"><strong>%s</strong></span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Email:</span>
+                                    <span class="detail-value">%s</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Teléfono:</span>
+                                    <span class="detail-value">%s</span>
+                                </div>
+                            </div>
+                            
+                            <div class="notes-section">
+                                <h4>Notas Adicionales</h4>
+                                <p class="notes-text">%s</p>
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <a href="https://calibarber-frontend.onrender.com" class="btn">
+                                    Acceder al Sistema
+                                </a>
+                            </div>
+                        </div>
+                        <div class="footer">
+                            <p>Este es un mensaje automático del sistema de gestión de citas.</p>
+                            <p>Para consultas o cambios, accede al sistema o contacta al administrador.</p>
+                            <p class="copyright">&copy; 2025 Calibarber Barbershop. Todos los derechos reservados.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, nombreBarbero, fechaFormateada, nombreServicio, duracionMinutos, precio, 
+                nombreCliente, emailCliente, telefonoTexto, notasTexto);
+    }
+
+    /**
+     * Formatea la fecha de la cita para mostrar de manera más legible
+     * @param fechaCita Fecha en formato ISO (yyyy-MM-dd'T'HH:mm:ss)
+     * @return Fecha formateada para mostrar al usuario
+     */
+    private String formatearFechaCita(String fechaCita) {
+        try {
+            // Parsear la fecha ISO
+            LocalDateTime dateTime = LocalDateTime.parse(fechaCita);
+            
+            // Formatear para mostrar: "Lunes, 15 de Febrero 2024 a las 14:30"
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM yyyy 'a las' HH:mm", 
+                                                                     new Locale("es", "ES"));
+            return dateTime.format(formatter);
+            
+        } catch (Exception e) {
+            log.warn("Error al formatear fecha {}: {}", fechaCita, e.getMessage());
+            return fechaCita; // Devolver la fecha original si hay error
+        }
     }
 
     /**
@@ -515,7 +876,7 @@ public class EmailService {
                         <div class="footer">
                             <p>Gracias por confiar en Calibarber Barbershop para tu cuidado personal.</p>
                             <p>Esperamos verte pronto en nuestras instalaciones.</p>
-                            <p class="copyright">&copy; 2024 Calibarber Barbershop. Todos los derechos reservados.</p>
+                            <p class="copyright">&copy; 2025 Calibarber Barbershop. Todos los derechos reservados.</p>
                         </div>
                     </div>
                 </div>
