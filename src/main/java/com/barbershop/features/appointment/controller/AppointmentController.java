@@ -302,11 +302,12 @@ public class    AppointmentController {
      * Obtiene todas las citas de un barbero específico con paginación
      *
      * Permisos de acceso:
-     * - ADMIN: Puede ver citas de cualquier barbero
-     * - BARBER: Solo puede ver sus propias citas
+     * - ADMIN: Puede ver citas de cualquier barbero (debe proporcionar barberId)
+     * - BARBER: Solo puede ver sus propias citas (puede proporcionar userId o barberId)
      * - CLIENT: Sin acceso a este endpoint
      *
-     * @param barberId ID único del barbero
+     * @param barberId ID único del barbero (opcional para barberos, requerido para admins)
+     * @param userId ID del usuario (opcional, usado para barberos que envían su userId)
      * @param page Número de página (0-indexed)
      * @param size Tamaño de página
      * @param sortBy Campo por el cual ordenar
@@ -317,8 +318,8 @@ public class    AppointmentController {
     @Operation(
             summary = "Obtener citas por barbero",
             description = "<strong>Permisos:</strong><br/>" +
-                         "• <strong>ADMIN:</strong> Puede ver citas de cualquier barbero<br/>" +
-                         "• <strong>BARBER:</strong> Solo puede ver sus propias citas<br/>" +
+                         "• <strong>ADMIN:</strong> Puede ver citas de cualquier barbero (debe proporcionar barberId)<br/>" +
+                         "• <strong>BARBER:</strong> Solo puede ver sus propias citas (puede proporcionar userId o barberId)<br/>" +
                          "• <strong>CLIENT:</strong> Sin acceso a este endpoint",
             responses = {
                     @ApiResponse(
@@ -331,8 +332,10 @@ public class    AppointmentController {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/by-barber")
     public ResponseEntity<ApiResponseDto<Page<AppointmentResponseDto>>> getAppointmentsByBarber(
-            @Parameter(description = "ID del barbero", required = true)
-            @RequestParam String barberId,
+            @Parameter(description = "ID del barbero (opcional para barberos, requerido para admins)")
+            @RequestParam(required = false) String barberId,
+            @Parameter(description = "ID del usuario (opcional, usado para barberos)")
+            @RequestParam(required = false) String userId,
             @Parameter(description = "Número de página (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Tamaño de página", example = "10")
@@ -344,7 +347,7 @@ public class    AppointmentController {
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
-        ApiResponseDto<Page<AppointmentResponseDto>> response = appointmentService.getAppointmentsByBarber(barberId, page, size, sortBy, sortDir, token);
+        ApiResponseDto<Page<AppointmentResponseDto>> response = appointmentService.getAppointmentsByBarber(barberId, userId, page, size, sortBy, sortDir, token);
         
         return ResponseEntity.ok(response);
     }
@@ -470,12 +473,14 @@ public class    AppointmentController {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/upcoming/by-barber")
     public ResponseEntity<ApiResponseDto<List<AppointmentResponseDto>>> getUpcomingAppointmentsByBarber(
-            @Parameter(description = "ID del barbero", required = true)
-            @RequestParam String barberId,
+            @Parameter(description = "ID del barbero (opcional para barberos, requerido para admins)")
+            @RequestParam(required = false) String barberId,
+            @Parameter(description = "ID del usuario (opcional, usado para barberos)")
+            @RequestParam(required = false) String userId,
             HttpServletRequest httpRequest) {
         
         String token = extractTokenFromRequest(httpRequest);
-        ApiResponseDto<List<AppointmentResponseDto>> response = appointmentService.getUpcomingAppointmentsByBarber(barberId, token);
+        ApiResponseDto<List<AppointmentResponseDto>> response = appointmentService.getUpcomingAppointmentsByBarber(barberId, userId, token);
         
         return ResponseEntity.ok(response);
     }

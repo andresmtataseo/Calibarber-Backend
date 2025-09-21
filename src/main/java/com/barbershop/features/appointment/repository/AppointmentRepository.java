@@ -80,10 +80,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
     Page<Appointment> findByClientIdAndDateRange(@Param("clientId") String clientId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, Pageable pageable);
 
     // Consultas para validar conflictos de horarios
-    @Query("SELECT a FROM Appointment a WHERE a.barberId = :barberId AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') AND ((a.appointmentDatetimeStart <= :endTime AND a.appointmentDatetimeEnd >= :startTime))")
+    @Query("SELECT a FROM Appointment a WHERE a.barberId = :barberId AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') AND ((a.appointmentDatetimeStart < :endTime AND a.appointmentDatetimeEnd > :startTime))")
     List<Appointment> findConflictingAppointments(@Param("barberId") String barberId, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
-    @Query("SELECT a FROM Appointment a WHERE a.barberId = :barberId AND a.appointmentId != :appointmentId AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') AND ((a.appointmentDatetimeStart <= :endTime AND a.appointmentDatetimeEnd >= :startTime))")
+    @Query("SELECT a FROM Appointment a WHERE a.barberId = :barberId AND a.appointmentId != :appointmentId AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') AND ((a.appointmentDatetimeStart < :endTime AND a.appointmentDatetimeEnd > :startTime))")
     List<Appointment> findConflictingAppointmentsExcluding(@Param("barberId") String barberId, @Param("appointmentId") String appointmentId, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
 
     // Consultas para citas del día

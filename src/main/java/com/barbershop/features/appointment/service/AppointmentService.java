@@ -3,6 +3,7 @@ package com.barbershop.features.appointment.service;
 import com.barbershop.common.dto.ApiResponseDto;
 import com.barbershop.common.exception.ResourceNotFoundException;
 import com.barbershop.common.exception.BusinessLogicException;
+import com.barbershop.features.auth.exception.InvalidCredentialsException;
 import com.barbershop.features.appointment.dto.AppointmentResponseDto;
 import com.barbershop.features.appointment.dto.BarberAvailabilityDto;
 import com.barbershop.features.appointment.dto.BarbersAvailabilityResponseDto;
@@ -27,6 +28,7 @@ import com.barbershop.features.barbershop.model.BarbershopOperatingHours;
 import com.barbershop.features.barbershop.repository.BarbershopRepository;
 import com.barbershop.features.barbershop.repository.BarbershopOperatingHoursRepository;
 import com.barbershop.features.service.repository.ServiceRepository;
+import com.barbershop.features.user.model.User;
 import com.barbershop.features.user.repository.UserRepository;
 import com.barbershop.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -139,7 +141,10 @@ public class AppointmentService {
         // Solo administradores pueden ver todas las citas
         validateAdminAccess(token);
         
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        // Mapear el campo de ordenamiento
+        String mappedSortBy = mapSortField(sortBy);
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(mappedSortBy).descending() : Sort.by(mappedSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Appointment> appointmentsPage = appointmentRepository.findAll(pageable);
@@ -154,6 +159,31 @@ public class AppointmentService {
     }
 
     /**
+     * Mapea los nombres de campos del DTO a los nombres de campos de la entidad
+     */
+    private String mapSortField(String sortBy) {
+        switch (sortBy) {
+            case "appointmentDateTime":
+                return "appointmentDatetimeStart";
+            case "appointmentDatetimeStart":
+            case "appointmentDatetimeEnd":
+            case "status":
+            case "clientId":
+            case "barberId":
+            case "serviceId":
+            case "barbershopId":
+            case "priceAtBooking":
+            case "notes":
+            case "createdAt":
+            case "updatedAt":
+                return sortBy;
+            default:
+                log.warn("Campo de ordenamiento no válido: {}, usando appointmentDatetimeStart por defecto", sortBy);
+                return "appointmentDatetimeStart";
+        }
+    }
+
+    /**
      * Obtiene citas por cliente
      */
     @Transactional(readOnly = true)
@@ -163,7 +193,10 @@ public class AppointmentService {
         // Validar autorización
         validateClientAccess(token, clientId);
         
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        // Mapear el campo de ordenamiento
+        String mappedSortBy = mapSortField(sortBy);
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(mappedSortBy).descending() : Sort.by(mappedSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Appointment> appointmentsPage = appointmentRepository.findByClientId(clientId, pageable);
@@ -181,15 +214,21 @@ public class AppointmentService {
      * Obtiene citas por barbero
      */
     @Transactional(readOnly = true)
-    public ApiResponseDto<Page<AppointmentResponseDto>> getAppointmentsByBarber(String barberId, int page, int size, String sortBy, String sortDir, String token) {
+    public ApiResponseDto<Page<AppointmentResponseDto>> getAppointmentsByBarber(String barberId, String userId, int page, int size, String sortBy, String sortDir, String token) {
 
-        // Validar autorización
-        validateBarberAccess(token, barberId);
+        // Determinar el barberId final basado en los parámetros y el rol del usuario
+        String finalBarberId = resolveBarberId(barberId, userId, token);
         
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        // Validar autorización usando el userId original si se proporcionó
+        validateBarberAccess(token, finalBarberId, userId);
+        
+        // Mapear el campo de ordenamiento
+        String mappedSortBy = mapSortField(sortBy);
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(mappedSortBy).descending() : Sort.by(mappedSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        Page<Appointment> appointmentsPage = appointmentRepository.findByBarberId(barberId, pageable);
+        Page<Appointment> appointmentsPage = appointmentRepository.findByBarberId(finalBarberId, pageable);
         Page<AppointmentResponseDto> responsePage = appointmentsPage.map(appointmentMapper::toResponseDto);
         
         return ApiResponseDto.<Page<AppointmentResponseDto>>builder()
@@ -210,7 +249,10 @@ public class AppointmentService {
         // Solo administradores pueden filtrar por estado
         validateAdminAccess(token);
         
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        // Mapear el campo de ordenamiento
+        String mappedSortBy = mapSortField(sortBy);
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(mappedSortBy).descending() : Sort.by(mappedSortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
         Page<Appointment> appointmentsPage = appointmentRepository.findByStatus(status, pageable);
@@ -249,13 +291,27 @@ public class AppointmentService {
      * Obtiene próximas citas de un barbero
      */
     @Transactional(readOnly = true)
-    public ApiResponseDto<List<AppointmentResponseDto>> getUpcomingAppointmentsByBarber(String barberId, String token) {
-        log.info("Obteniendo próximas citas del barbero: {}", barberId);
+    public ApiResponseDto<List<AppointmentResponseDto>> getUpcomingAppointmentsByBarber(String barberId, String userId, String token) {
+        log.info("Obteniendo próximas citas del barbero - barberId: {}, userId: {}", barberId, userId);
+        
+        String finalBarberId = barberId;
+        
+        // Si no se proporciona barberId pero sí userId, obtener el barberId del usuario
+        if (barberId == null && userId != null) {
+            Barber barber = barberRepository.findByUserIdAndActive(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Barbero no encontrado para el usuario: " + userId));
+            finalBarberId = barber.getBarberId();
+        }
+        
+        // Validar que se tenga un barberId válido
+        if (finalBarberId == null) {
+            throw new BusinessLogicException("Se requiere barberId o userId para obtener las citas");
+        }
         
         // Validar autorización
-        validateBarberAccess(token, barberId);
+        validateBarberAccess(token, finalBarberId);
         
-        List<Appointment> appointments = appointmentRepository.findUpcomingByBarberId(barberId, LocalDateTime.now());
+        List<Appointment> appointments = appointmentRepository.findUpcomingByBarberId(finalBarberId, LocalDateTime.now());
         List<AppointmentResponseDto> responseList = appointmentMapper.toResponseDtoList(appointments);
         
         return ApiResponseDto.<List<AppointmentResponseDto>>builder()
@@ -429,7 +485,12 @@ public class AppointmentService {
     
     private void validateAppointmentCreationAccess(String token, String clientId) {
         String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
+        String userEmail = jwtService.getUsernameFromToken(token); // Esto devuelve el email
+        
+        // Obtener el userId real usando el email
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+        String userId = currentUser.getUserId();
         
         // Los clientes solo pueden crear citas para sí mismos
         if ("ROLE_CLIENT".equals(userRole) && !userId.equals(clientId)) {
@@ -444,7 +505,12 @@ public class AppointmentService {
     
     private void validateAppointmentAccess(String token, Appointment appointment) {
         String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
+        String userEmail = jwtService.getUsernameFromToken(token); // Esto devuelve el email
+        
+        // Obtener el userId real usando el email
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+        String userId = currentUser.getUserId();
         
         // Administradores pueden ver todas las citas
         if ("ROLE_ADMIN".equals(userRole)) {
@@ -464,7 +530,14 @@ public class AppointmentService {
     
     private void validateAppointmentModificationAccess(String token, Appointment appointment) {
         String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
+        String userEmail = jwtService.getUsernameFromToken(token); // Esto devuelve el email
+        
+        // Obtener el userId real usando el email
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+        String userId = currentUser.getUserId();
+        
+        log.info("Validando acceso de modificación - userEmail: {}, userId: {}, role: {}", userEmail, userId, userRole);
         
         // Administradores pueden modificar todas las citas
         if ("ROLE_ADMIN".equals(userRole)) {
@@ -472,19 +545,45 @@ public class AppointmentService {
         }
         
         // Clientes solo pueden modificar sus propias citas
-        if ("ROLE_CLIENT".equals(userRole) && !userId.equals(appointment.getClientId())) {
-            throw new AccessDeniedException("No tienes permisos para modificar esta cita");
+        if ("ROLE_CLIENT".equals(userRole)) {
+            if (!userId.equals(appointment.getClientId())) {
+                throw new AccessDeniedException("No tienes permisos para modificar esta cita");
+            }
+            return;
         }
         
         // Barberos solo pueden modificar citas asignadas a ellos
-        if ("ROLE_BARBER".equals(userRole) && !userId.equals(appointment.getBarberId())) {
-            throw new AccessDeniedException("No tienes permisos para modificar esta cita");
+        if ("ROLE_BARBER".equals(userRole)) {
+            // Obtener el barbero asociado al usuario actual del token
+            Optional<Barber> currentBarber = barberRepository.findByUserIdAndActive(userId);
+            log.info("Búsqueda de barbero por userId del token: {} - Encontrado: {}", userId, currentBarber.isPresent());
+            
+            if (currentBarber.isEmpty()) {
+                log.error("No se encontró barbero activo para userId: {}", userId);
+                throw new AccessDeniedException("No se encontró información del barbero para el usuario actual");
+            }
+            
+            String currentBarberId = currentBarber.get().getBarberId();
+            
+            // Verificar que el barbero está intentando modificar sus propias citas
+            if (!currentBarberId.equals(appointment.getBarberId())) {
+                log.error("Acceso denegado - barberId del usuario: {} no coincide con barberId de la cita: {}", currentBarberId, appointment.getBarberId());
+                throw new AccessDeniedException("No tienes permisos para modificar esta cita");
+            }
+            return;
         }
+        
+        throw new AccessDeniedException("No tienes permisos para realizar esta acción");
     }
     
     private void validateClientAccess(String token, String clientId) {
         String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
+        String userEmail = jwtService.getUsernameFromToken(token); // Esto devuelve el email
+        
+        // Obtener el userId real usando el email
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+        String userId = currentUser.getUserId();
         
         // Administradores pueden acceder a cualquier cliente
         if ("ROLE_ADMIN".equals(userRole)) {
@@ -503,8 +602,19 @@ public class AppointmentService {
     }
     
     private void validateBarberAccess(String token, String barberId) {
+        validateBarberAccess(token, barberId, null);
+    }
+    
+    private void validateBarberAccess(String token, String barberId, String requestUserId) {
         String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
+        String userEmail = jwtService.getUsernameFromToken(token); // Esto devuelve el email
+        
+        // Obtener el userId real usando el email
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+        String userId = currentUser.getUserId();
+        
+        log.info("Validando acceso de barbero - userEmail: {}, userId: {}, barberId: {}, role: {}, requestUserId: {}", userEmail, userId, barberId, userRole, requestUserId);
         
         // Administradores pueden acceder a cualquier barbero
         if ("ROLE_ADMIN".equals(userRole)) {
@@ -512,8 +622,46 @@ public class AppointmentService {
         }
         
         // Barberos solo pueden acceder a sus propias citas
-        if ("ROLE_BARBER".equals(userRole) && !userId.equals(barberId)) {
-            throw new AccessDeniedException("No tienes permisos para acceder a las citas de este barbero");
+        if ("ROLE_BARBER".equals(userRole)) {
+            // Obtener el barbero asociado al usuario actual del token
+            Optional<Barber> currentBarber = barberRepository.findByUserIdAndActive(userId);
+            log.info("Búsqueda de barbero por userId del token: {} - Encontrado: {}", userId, currentBarber.isPresent());
+            
+            if (currentBarber.isEmpty()) {
+                log.error("No se encontró barbero activo para userId: {}", userId);
+                throw new AccessDeniedException("No se encontró información del barbero para el usuario actual");
+            }
+            
+            String currentBarberId = currentBarber.get().getBarberId();
+            
+            // Si se proporcionó un userId específico en la request, verificar que el barbero asociado a ese userId sea el mismo que el del token
+            if (requestUserId != null && !requestUserId.trim().isEmpty()) {
+                // Buscar el barbero asociado al requestUserId
+                Optional<Barber> requestedBarber = barberRepository.findByUserIdAndActive(requestUserId);
+                log.info("Búsqueda de barbero por requestUserId: {} - Encontrado: {}", requestUserId, requestedBarber.isPresent());
+                
+                if (requestedBarber.isEmpty()) {
+                    log.error("No se encontró barbero activo para requestUserId: {}", requestUserId);
+                    throw new AccessDeniedException("No se encontró información del barbero para el usuario solicitado");
+                }
+                
+                String requestedBarberId = requestedBarber.get().getBarberId();
+                
+                // Verificar que el barbero del token coincida con el barbero del requestUserId
+                if (!currentBarberId.equals(requestedBarberId)) {
+                    log.error("Acceso denegado - barberId del token: {} no coincide con barberId del requestUserId: {}", currentBarberId, requestedBarberId);
+                    throw new AccessDeniedException("No tienes permisos para acceder a las citas de otro usuario");
+                }
+                // Si los barberId coinciden, permitir el acceso
+                return;
+            }
+            
+            // Verificar que el barbero está intentando acceder a sus propias citas
+            if (!currentBarberId.equals(barberId)) {
+                log.error("Acceso denegado - barberId del usuario: {} no coincide con barberId solicitado: {}", currentBarberId, barberId);
+                throw new AccessDeniedException("No tienes permisos para acceder a las citas de este barbero");
+            }
+            return;
         }
         
         // Clientes no pueden acceder directamente a citas por barbero
@@ -524,7 +672,14 @@ public class AppointmentService {
     
     private void validateBarberOrAdminAccess(String token, String barberId) {
         String userRole = jwtService.extractRole(token);
-        String userId = jwtService.getUsernameFromToken(token);
+        String userEmail = jwtService.getUsernameFromToken(token); // Esto devuelve el email
+        
+        // Obtener el userId real usando el email
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+        String userId = currentUser.getUserId();
+        
+        log.info("Validando acceso de barbero o admin - userEmail: {}, userId: {}, barberId: {}, role: {}", userEmail, userId, barberId, userRole);
         
         // Administradores pueden acceder
         if ("ROLE_ADMIN".equals(userRole)) {
@@ -532,7 +687,23 @@ public class AppointmentService {
         }
         
         // Barberos solo pueden acceder a sus propias citas
-        if ("ROLE_BARBER".equals(userRole) && userId.equals(barberId)) {
+        if ("ROLE_BARBER".equals(userRole)) {
+            // Obtener el barbero asociado al usuario actual del token
+            Optional<Barber> currentBarber = barberRepository.findByUserIdAndActive(userId);
+            log.info("Búsqueda de barbero por userId del token: {} - Encontrado: {}", userId, currentBarber.isPresent());
+            
+            if (currentBarber.isEmpty()) {
+                log.error("No se encontró barbero activo para userId: {}", userId);
+                throw new AccessDeniedException("No se encontró información del barbero para el usuario actual");
+            }
+            
+            String currentBarberId = currentBarber.get().getBarberId();
+            
+            // Verificar que el barbero está intentando acceder a sus propias citas
+            if (!currentBarberId.equals(barberId)) {
+                log.error("Acceso denegado - barberId del usuario: {} no coincide con barberId solicitado: {}", currentBarberId, barberId);
+                throw new AccessDeniedException("No tienes permisos para realizar esta acción");
+            }
             return;
         }
         
@@ -1145,6 +1316,52 @@ public class AppointmentService {
             .build();
     }
     
+    /**
+     * Resuelve el barberId basado en los parámetros proporcionados y el rol del usuario
+     */
+    private String resolveBarberId(String barberId, String userId, String token) {
+        log.info("Resolviendo barberId - barberId: {}, userId: {}", barberId, userId);
+        
+        // Si se proporciona barberId directamente, usarlo
+        if (barberId != null && !barberId.trim().isEmpty()) {
+            log.info("Usando barberId proporcionado: {}", barberId);
+            return barberId;
+        }
+        
+        // Si se proporciona userId, buscar el barbero correspondiente
+        if (userId != null && !userId.trim().isEmpty()) {
+            log.info("Buscando barbero por userId: {}", userId);
+            Optional<Barber> barber = barberRepository.findByUserIdAndActive(userId);
+            if (barber.isPresent()) {
+                String resolvedBarberId = barber.get().getBarberId();
+                log.info("Barbero encontrado por userId - barberId: {}", resolvedBarberId);
+                return resolvedBarberId;
+            } else {
+                log.warn("No se encontró barbero activo para userId: {}", userId);
+                throw new InvalidCredentialsException("Usuario no es un barbero activo");
+            }
+        }
+        
+        // Si no se proporciona ninguno, extraer del token
+        log.info("Extrayendo userId del token para buscar barbero");
+        String tokenUserEmail = jwtService.getUsernameFromToken(token); // Esto devuelve el email
+        
+        // Obtener el userId real usando el email
+        User tokenUser = userRepository.findByEmail(tokenUserEmail)
+                .orElseThrow(() -> new AccessDeniedException("Usuario no encontrado"));
+        String tokenUserId = tokenUser.getUserId();
+        
+        Optional<Barber> barber = barberRepository.findByUserIdAndActive(tokenUserId);
+        if (barber.isPresent()) {
+            String resolvedBarberId = barber.get().getBarberId();
+            log.info("Barbero encontrado por token userId - barberId: {}", resolvedBarberId);
+            return resolvedBarberId;
+        } else {
+            log.warn("No se encontró barbero activo para token userId: {}", tokenUserId);
+            throw new InvalidCredentialsException("Usuario del token no es un barbero activo");
+        }
+    }
+
     /**
      * Obtiene el nombre completo del barbero
      */
