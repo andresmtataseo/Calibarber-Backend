@@ -52,24 +52,26 @@ public class BarberAvailabilityService {
             throw new AccessDeniedException("No tienes permisos para modificar la disponibilidad de este barbero");
         }
         
-        // Validar horarios
-        validateTimeRange(createDto.getStartTime(), createDto.getEndTime());
-        
-        // Verificar solapamientos
-        List<BarberAvailability> overlapping = availabilityRepository.findOverlappingAvailabilityForNew(
-                createDto.getBarberId(),
-                createDto.getDayOfWeek(),
-                createDto.getStartTime(),
-                createDto.getEndTime()
-        );
-        
-        if (!overlapping.isEmpty()) {
-            throw new IllegalArgumentException("Ya existe disponibilidad en ese horario para el barbero");
+        // Validar horarios solo si está disponible
+        if (Boolean.TRUE.equals(createDto.getIsAvailable())) {
+            validateTimeRange(createDto.getStartTime(), createDto.getEndTime());
+            
+            // Verificar solapamientos solo si está disponible
+            List<BarberAvailability> overlapping = availabilityRepository.findOverlappingAvailabilityForNew(
+                    createDto.getBarberId(),
+                    createDto.getDayOfWeek(),
+                    createDto.getStartTime(),
+                    createDto.getEndTime()
+            );
+            
+            if (!overlapping.isEmpty()) {
+                throw new IllegalArgumentException("Ya existe disponibilidad en ese horario para el barbero");
+            }
         }
         
         // Crear entidad
         BarberAvailability availability = availabilityMapper.toEntity(createDto);
-        availability.setIsAvailable(true);
+        availability.setIsAvailable(createDto.getIsAvailable() != null ? createDto.getIsAvailable() : true);
         availability.setCreatedAt(LocalDateTime.now());
         availability.setUpdatedAt(LocalDateTime.now());
         
@@ -169,26 +171,29 @@ public class BarberAvailabilityService {
             throw new AccessDeniedException("No tienes permisos para modificar esta disponibilidad");
         }
         
-        // Validar horarios
-        validateTimeRange(updateDto.getStartTime(), updateDto.getEndTime());
-        
-        // Verificar solapamientos (excluyendo el registro actual)
-        List<BarberAvailability> overlapping = availabilityRepository.findOverlappingAvailability(
-                updateDto.getBarberId(),
-                updateDto.getDayOfWeek(),
-                updateDto.getStartTime(),
-                updateDto.getEndTime(),
-                availabilityId
-        );
-        
-        if (!overlapping.isEmpty()) {
-            throw new IllegalArgumentException("Ya existe disponibilidad en ese horario para el barbero");
+        // Validar horarios solo si está disponible
+        if (Boolean.TRUE.equals(updateDto.getIsAvailable())) {
+            validateTimeRange(updateDto.getStartTime(), updateDto.getEndTime());
+            
+            // Verificar solapamientos (excluyendo el registro actual) solo si está disponible
+            List<BarberAvailability> overlapping = availabilityRepository.findOverlappingAvailability(
+                    updateDto.getBarberId(),
+                    updateDto.getDayOfWeek(),
+                    updateDto.getStartTime(),
+                    updateDto.getEndTime(),
+                    availabilityId
+            );
+            
+            if (!overlapping.isEmpty()) {
+                throw new IllegalArgumentException("Ya existe disponibilidad en ese horario para el barbero");
+            }
         }
         
         // Actualizar campos
         availability.setDayOfWeek(updateDto.getDayOfWeek());
         availability.setStartTime(updateDto.getStartTime());
         availability.setEndTime(updateDto.getEndTime());
+        availability.setIsAvailable(updateDto.getIsAvailable() != null ? updateDto.getIsAvailable() : true);
         availability.setUpdatedAt(LocalDateTime.now());
         
         BarberAvailability updatedAvailability = availabilityRepository.save(availability);

@@ -20,14 +20,39 @@ public class CreateBarberAvailabilityRequestDto {
     @Schema(description = "Día de la semana", example = "MONDAY", required = true)
     private DayOfWeek dayOfWeek;
 
-    @NotNull(message = "La hora de inicio es obligatoria")
-    @Schema(description = "Hora de inicio de disponibilidad", example = "09:00:00", required = true)
+    @Schema(description = "Hora de inicio de disponibilidad", example = "09:00:00", required = false)
     private LocalTime startTime;
 
-    @NotNull(message = "La hora de fin es obligatoria")
-    @Schema(description = "Hora de fin de disponibilidad", example = "18:00:00", required = true)
+    @Schema(description = "Hora de fin de disponibilidad", example = "18:00:00", required = false)
     private LocalTime endTime;
 
     @Schema(description = "Indica si está disponible en este horario", example = "true")
     private Boolean isAvailable = true;
+
+    /**
+     * Valida que los horarios sean obligatorios solo cuando isAvailable es true
+     */
+    @AssertTrue(message = "La hora de inicio es obligatoria cuando el barbero está disponible")
+    public boolean isStartTimeValid() {
+        return !Boolean.TRUE.equals(isAvailable) || startTime != null;
+    }
+
+    /**
+     * Valida que los horarios sean obligatorios solo cuando isAvailable es true
+     */
+    @AssertTrue(message = "La hora de fin es obligatoria cuando el barbero está disponible")
+    public boolean isEndTimeValid() {
+        return !Boolean.TRUE.equals(isAvailable) || endTime != null;
+    }
+
+    /**
+     * Valida que la hora de inicio sea anterior a la hora de fin cuando ambas están presentes
+     */
+    @AssertTrue(message = "La hora de inicio debe ser anterior a la hora de fin")
+    public boolean isTimeRangeValid() {
+        if (startTime == null || endTime == null) {
+            return true; // Si alguna es null, no validamos el rango aquí
+        }
+        return startTime.isBefore(endTime);
+    }
 }

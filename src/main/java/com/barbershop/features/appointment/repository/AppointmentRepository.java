@@ -142,4 +142,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
     // Consulta para obtener citas de múltiples barberos en un rango de fechas
     @Query("SELECT a FROM Appointment a WHERE a.barberId IN :barberIds AND a.appointmentDatetimeStart BETWEEN :startDate AND :endDate AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS') ORDER BY a.appointmentDatetimeStart ASC")
     List<Appointment> findByBarberIdInAndAppointmentDatetimeStartBetween(@Param("barberIds") List<String> barberIds, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
+    // Consulta para encontrar citas perdidas (para el servicio programado)
+    @Query("SELECT a FROM Appointment a WHERE a.status IN ('SCHEDULED', 'CONFIRMED') AND a.appointmentDatetimeEnd < :currentTime ORDER BY a.appointmentDatetimeEnd ASC")
+    List<Appointment> findMissedAppointments(@Param("currentTime") LocalDateTime currentTime);
+
+    // Consulta para contar citas por estado en un rango de fechas (para estadísticas)
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.status = :status AND a.appointmentDatetimeStart BETWEEN :startDate AND :endDate")
+    long countByStatusAndDateRange(@Param("status") AppointmentStatus status, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }
