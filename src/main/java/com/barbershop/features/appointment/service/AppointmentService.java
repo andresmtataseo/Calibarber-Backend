@@ -1272,6 +1272,38 @@ public class AppointmentService {
         LocalTime requestedTime = requestedDateTime.toLocalTime();
         LocalDate requestedDate = requestedDateTime.toLocalDate();
         
+        // PRIMERO: Verificar si el barbero tiene disponibilidad configurada para este día
+        List<BarberAvailability> dayAvailabilities = barberAvailabilityRepository
+            .findByBarberIdAndDayOfWeekAndAvailable(barber.getBarberId(), dayOfWeek);
+        
+        if (dayAvailabilities.isEmpty()) {
+            log.debug("Barbero {} no tiene disponibilidad configurada para {}", barber.getBarberId(), dayOfWeek);
+            return BarberAvailabilityDto.builder()
+                .id(barber.getBarberId())
+                .name(getBarberName(barber))
+                .available(false)
+                .freeMinutes(0)
+                .build();
+        }
+        
+        // Verificar si el horario solicitado está dentro de algún rango de disponibilidad del barbero
+        boolean isWithinAvailableHours = dayAvailabilities.stream()
+            .anyMatch(availability -> 
+                !requestedTime.isBefore(availability.getStartTime()) && 
+                requestedTime.isBefore(availability.getEndTime())
+            );
+        
+        if (!isWithinAvailableHours) {
+            log.debug("Horario {} está fuera del rango de disponibilidad del barbero {} para {}", 
+                requestedTime, barber.getBarberId(), dayOfWeek);
+            return BarberAvailabilityDto.builder()
+                .id(barber.getBarberId())
+                .name(getBarberName(barber))
+                .available(false)
+                .freeMinutes(0)
+                .build();
+        }
+        
         // Verificar si el barbero está ocupado en el horario solicitado
         boolean isOccupied = barberAppointments.stream()
             .anyMatch(appointment -> {
