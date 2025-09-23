@@ -28,6 +28,10 @@ public interface BarberAvailabilityRepository extends JpaRepository<BarberAvaila
     @Query("SELECT ba FROM BarberAvailability ba WHERE ba.barberId = :barberId")
     Page<BarberAvailability> findByBarberId(@Param("barberId") String barberId, Pageable pageable);
 
+    // Método para contar disponibilidades activas por barbero
+    @Query("SELECT COUNT(ba) FROM BarberAvailability ba WHERE ba.barberId = :barberId AND ba.isAvailable = true")
+    long countActiveAvailabilitiesByBarberId(@Param("barberId") String barberId);
+
     // Consultas por día de la semana
     @Query("SELECT ba FROM BarberAvailability ba WHERE ba.barberId = :barberId AND ba.dayOfWeek = :dayOfWeek AND ba.isAvailable = true ORDER BY ba.startTime")
     List<BarberAvailability> findByBarberIdAndDayOfWeekAndAvailable(@Param("barberId") String barberId, @Param("dayOfWeek") DayOfWeek dayOfWeek);

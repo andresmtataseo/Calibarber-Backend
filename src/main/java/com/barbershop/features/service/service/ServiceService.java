@@ -4,6 +4,8 @@ import com.barbershop.common.exception.ResourceNotFoundException;
 import com.barbershop.common.exception.ResourceAlreadyExistsException;
 import com.barbershop.common.exception.BusinessLogicException;
 import com.barbershop.features.auth.security.JwtService;
+import com.barbershop.features.service.exception.ServiceHasActiveRecordsException;
+import com.barbershop.features.appointment.repository.AppointmentRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.barbershop.features.service.dto.ServiceResponseDto;
 import com.barbershop.features.service.dto.request.CreateServiceRequestDto;
@@ -40,6 +42,7 @@ public class ServiceService {
     private final ServiceMapper serviceMapper;
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final AppointmentRepository appointmentRepository;
 
     /**
      * Crea un nuevo servicio
@@ -282,6 +285,13 @@ public class ServiceService {
         
         // Validar autorización
         validateServiceModificationAccess(service.getBarbershopId());
+        
+        // Verificar si el servicio tiene citas activas
+        long activeAppointments = appointmentRepository.countActiveAppointmentsByServiceId(serviceId);
+        if (activeAppointments > 0) {
+            throw new ServiceHasActiveRecordsException(serviceId, 
+                "El servicio tiene " + activeAppointments + " cita(s) activa(s)");
+        }
         
         int deletedCount = serviceRepository.softDeleteById(serviceId);
         if (deletedCount == 0) {

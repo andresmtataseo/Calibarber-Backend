@@ -4,9 +4,12 @@ import com.barbershop.features.auth.exception.UserNotFoundException;
 import com.barbershop.features.barber.dto.BarberResponseDto;
 import com.barbershop.features.barber.dto.request.CreateBarberRequestDto;
 import com.barbershop.features.barber.dto.request.UpdateBarberRequestDto;
+import com.barbershop.features.barber.exception.BarberHasActiveRecordsException;
 import com.barbershop.features.barber.mapper.BarberMapper;
 import com.barbershop.features.barber.model.Barber;
 import com.barbershop.features.barber.repository.BarberRepository;
+import com.barbershop.features.barber.repository.BarberAvailabilityRepository;
+import com.barbershop.features.appointment.repository.AppointmentRepository;
 import com.barbershop.features.user.service.UserService;
 import com.barbershop.features.user.model.enums.RoleEnum;
 import com.barbershop.features.user.dto.UserUpdateDto;
@@ -21,7 +24,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import com.barbershop.shared.util.SecurityUtils;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,8 @@ public class BarberService {
     private final BarberRepository barberRepository;
     private final BarberMapper barberMapper;
     private final UserService userService;
+    private final AppointmentRepository appointmentRepository;
+    private final BarberAvailabilityRepository barberAvailabilityRepository;
 
     /**
      * Crea un nuevo barbero y actualiza automáticamente el rol del usuario a BARBER
@@ -210,6 +214,17 @@ public class BarberService {
         // Verificar autorización
         if (!canModifyBarber(barberId)) {
             throw new AccessDeniedException("No tienes permisos para eliminar este barbero");
+        }
+        
+        // Verificar si el barbero tiene registros activos
+        long activeAppointments = appointmentRepository.countActiveAppointmentsByBarberId(barberId);
+        if (activeAppointments > 0) {
+            throw new BarberHasActiveRecordsException(barberId, "citas", activeAppointments);
+        }
+        
+        long activeAvailabilities = barberAvailabilityRepository.countActiveAvailabilitiesByBarberId(barberId);
+        if (activeAvailabilities > 0) {
+            throw new BarberHasActiveRecordsException(barberId, "disponibilidades", activeAvailabilities);
         }
         
         barberRepository.softDeleteById(barberId, LocalDateTime.now());

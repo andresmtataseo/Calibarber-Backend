@@ -48,6 +48,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
     @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId AND a.status = :status ORDER BY a.appointmentDatetimeStart DESC")
     List<Appointment> findByClientIdAndStatus(@Param("clientId") String clientId, @Param("status") AppointmentStatus status);
 
+    // Método para contar citas activas por barbero
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.barberId = :barberId AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')")
+    long countActiveAppointmentsByBarberId(@Param("barberId") String barberId);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.serviceId = :serviceId AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')")
+    long countActiveAppointmentsByServiceId(@Param("serviceId") String serviceId);
+
     @Query("SELECT a FROM Appointment a WHERE a.clientId = :clientId AND a.status = :status ORDER BY a.appointmentDatetimeStart DESC")
     Page<Appointment> findByClientIdAndStatus(@Param("clientId") String clientId, @Param("status") AppointmentStatus status, Pageable pageable);
 
@@ -109,6 +116,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
 
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.clientId = :clientId AND a.status = :status")
     long countByClientIdAndStatus(@Param("clientId") String clientId, @Param("status") AppointmentStatus status);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE a.clientId = :clientId AND a.status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS')")
+    long countActiveAppointmentsByClientId(@Param("clientId") String clientId);
 
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.barbershopId = :barbershopId AND a.status = :status")
     long countByBarbershopIdAndStatus(@Param("barbershopId") String barbershopId, @Param("status") AppointmentStatus status);

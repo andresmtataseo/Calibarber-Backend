@@ -11,6 +11,9 @@ import com.barbershop.features.user.dto.UserUpdateDto;
 import com.barbershop.features.user.mapper.UserMapper;
 import com.barbershop.features.user.model.User;
 import com.barbershop.features.user.repository.UserRepository;
+import com.barbershop.features.user.exception.UserHasActiveRecordsException;
+import com.barbershop.features.appointment.repository.AppointmentRepository;
+import com.barbershop.features.barber.repository.BarberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,6 +38,8 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthUtils authUtils;
+    private final AppointmentRepository appointmentRepository;
+    private final BarberRepository barberRepository;
 
     /**
      * Crea un nuevo usuario
@@ -209,12 +214,27 @@ public class UserService {
 
     /**
      * Elimina un usuario por ID usando soft delete
+     * Verifica que el usuario no tenga registros activos antes de eliminar
      */
     public void deleteUser(String userId) {
         log.info("Eliminando usuario con ID: {} (soft delete)", userId);
         
         User user = userRepository.findByIdAndNotDeleted(userId)
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con ID: " + userId));
+        
+        // Verificar si el usuario tiene citas activas
+        long activeAppointments = appointmentRepository.countActiveAppointmentsByClientId(userId);
+        if (activeAppointments > 0) {
+            log.warn("No se puede eliminar el usuario {} porque tiene {} citas activas", userId, activeAppointments);
+            throw new UserHasActiveRecordsException(userId, "citas", activeAppointments);
+        }
+        
+        // Verificar si el usuario es un barbero activo
+        boolean isActiveBarber = barberRepository.existsByUserIdAndActive(userId);
+        if (isActiveBarber) {
+            log.warn("No se puede eliminar el usuario {} porque es un barbero activo", userId);
+            throw new UserHasActiveRecordsException(userId, "perfil de barbero");
+        }
         
         user.setIsDeleted(true);
         user.setDeletedAt(LocalDateTime.now());
@@ -293,14 +313,6 @@ public class UserService {
         String currentUserId = SecurityUtils.getCurrentUserId();
         return currentUserId != null && currentUserId.equals(targetUserId);
     }
-
-    /**
-     * Verifica si el usuario autenticado es un administrador
-     */
-    private boolean isCurrentUserAdmin() {
-        return SecurityUtils.isCurrentUserAdmin();
-    }
-    
 
 
 }
