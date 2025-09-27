@@ -31,7 +31,6 @@ import com.barbershop.features.barbershop.repository.BarbershopOperatingHoursRep
 import com.barbershop.features.service.repository.ServiceRepository;
 import com.barbershop.features.user.model.User;
 import com.barbershop.features.user.repository.UserRepository;
-import com.barbershop.shared.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -128,6 +127,8 @@ public class AppointmentService {
      */
     private void enviarNotificacionEmailBarbero(Appointment appointment, CreateAppointmentRequestDto request) {
         try {
+            log.debug("Iniciando proceso de envío de notificación para la cita: {}", appointment.getAppointmentId());
+            
             // Obtener información del barbero
             Barber barber = barberRepository.findById(request.getBarberId())
                     .orElseThrow(() -> new ResourceNotFoundException("Barbero no encontrado"));
@@ -155,6 +156,9 @@ public class AppointmentService {
             String precio = request.getPrice().toString();
             String notas = request.getNotes();
             
+            log.debug("Datos preparados para envío - Barbero: {}, Cliente: {}, Email barbero: {}", 
+                     nombreBarbero, nombreCliente, emailBarbero);
+            
             // Enviar el email
             emailService.enviarNotificacionCitaBarbero(
                     emailBarbero, nombreBarbero, nombreCliente, emailCliente, 
@@ -165,10 +169,21 @@ public class AppointmentService {
             log.info("Notificación de email enviada exitosamente al barbero {} para la cita {}", 
                     emailBarbero, appointment.getAppointmentId());
             
+        } catch (ResourceNotFoundException e) {
+            log.error("Error de datos al enviar notificación para la cita {}: {}", 
+                    appointment.getAppointmentId(), e.getMessage());
+            // No re-lanzar para evitar que falle la creación de la cita por un problema de notificación
+            log.warn("La cita se creó correctamente pero no se pudo enviar la notificación al barbero");
+        } catch (RuntimeException e) {
+            log.error("Error del servicio de correo al enviar notificación para la cita {}: {}", 
+                    appointment.getAppointmentId(), e.getMessage());
+            // No re-lanzar para evitar que falle la creación de la cita por un problema de notificación
+            log.warn("La cita se creó correctamente pero no se pudo enviar la notificación al barbero debido a un problema con el servicio de correo");
         } catch (Exception e) {
-            log.error("Error al enviar notificación de email al barbero para la cita {}: {}", 
+            log.error("Error inesperado al enviar notificación de email al barbero para la cita {}: {}", 
                     appointment.getAppointmentId(), e.getMessage(), e);
-            throw e; // Re-lanzar para que sea capturado por el método principal
+            // No re-lanzar para evitar que falle la creación de la cita por un problema de notificación
+            log.warn("La cita se creó correctamente pero no se pudo enviar la notificación al barbero debido a un error inesperado");
         }
     }
 

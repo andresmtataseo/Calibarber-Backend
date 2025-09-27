@@ -304,6 +304,19 @@ public class EmailService {
                                             String nombreServicio, Integer duracionMinutos, 
                                             String precio, String notas) {
         try {
+            // Validar parámetros de entrada
+            if (emailBarbero == null || emailBarbero.trim().isEmpty()) {
+                throw new IllegalArgumentException("El email del barbero no puede estar vacío");
+            }
+            
+            if (nombreBarbero == null || nombreBarbero.trim().isEmpty()) {
+                throw new IllegalArgumentException("El nombre del barbero no puede estar vacío");
+            }
+            
+            log.debug("Iniciando envío de notificación de cita al barbero: {}", emailBarbero);
+            log.debug("Datos de la cita - Cliente: {}, Servicio: {}, Fecha: {}", 
+                     nombreCliente, nombreServicio, fechaCita);
+            
             String asunto = "Nueva Cita Programada - " + nombreCliente;
             String contenidoHtml = construirHtmlNotificacionCita(nombreBarbero, nombreCliente, 
                                                                emailCliente, telefonoCliente, 
@@ -314,9 +327,18 @@ public class EmailService {
             
             log.info("Notificación de cita enviada exitosamente al barbero: {}", emailBarbero);
             
+        } catch (IllegalArgumentException e) {
+            log.error("Error de validación al enviar notificación al barbero {}: {}", emailBarbero, e.getMessage());
+            throw new RuntimeException("Error de validación: " + e.getMessage(), e);
+        } catch (jakarta.mail.AuthenticationFailedException e) {
+            log.error("Error de autenticación SMTP al enviar notificación al barbero {}: {}", emailBarbero, e.getMessage());
+            throw new RuntimeException("Error de autenticación del servidor de correo. Verificar credenciales SMTP.", e);
+        } catch (jakarta.mail.MessagingException e) {
+            log.error("Error de mensajería al enviar notificación al barbero {}: {}", emailBarbero, e.getMessage());
+            throw new RuntimeException("Error en el servicio de correo: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("Error al enviar notificación de cita al barbero {}: {}", emailBarbero, e.getMessage(), e);
-            throw new RuntimeException("Error al enviar notificación de cita al barbero", e);
+            log.error("Error inesperado al enviar notificación de cita al barbero {}: {}", emailBarbero, e.getMessage(), e);
+            throw new RuntimeException("Error al enviar notificación de cita al barbero: " + e.getMessage(), e);
         }
     }
 
