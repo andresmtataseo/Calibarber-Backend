@@ -1,224 +1,164 @@
-# Barbershop - Sistema de Gestión para Barberías
+# Calibarber Backend — Sistema de Gestión para Barberías
+
+<p align="center">
+  <img src="./logo.png" alt="Calibarber" width="180" />
+  
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-21-007396?logo=java&logoColor=white" />
+  <img src="https://img.shields.io/badge/Spring%20Boot-3.5.0-6DB33F?logo=springboot&logoColor=white" />
+  <img src="https://img.shields.io/badge/Maven-3.x-C71A36?logo=apachemaven&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-13%2B-4169E1?logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/OpenAPI-3.x-6BA539?logo=openapiinitiative&logoColor=white" />
+  <img src="https://img.shields.io/badge/JWT-Auth-000000?logo=jsonwebtokens&logoColor=white" />
+</p>
+
+Calibarber Backend es la API REST para gestionar barberías, usuarios, barberos, servicios, citas y pagos. Forma parte del proyecto completo Calibarber junto con el frontend en Angular: https://github.com/andresmtataseo/Calibarber-Frontend.
+
+## Tabla de Contenidos
+- Descripción General
+- Tecnologías Utilizadas
+- Arquitectura y Módulos
+- Características Clave
+- Configuración y Perfiles
+- Requisitos
+- Instalación y Ejecución
+- Documentación de la API
+- Endpoints Principales
+- Sistema de Soft Delete
+- Integración con el Frontend
+- Despliegue con Docker
+- Buenas Prácticas
 
 ## Descripción General
-Este proyecto es una aplicación de gestión para barberías, desarrollada como parte de un diplomado. La aplicación proporciona una plataforma completa para la administración de barberías, incluyendo gestión de usuarios, autenticación, citas, servicios y pagos.
+Esta API está construida con Spring Boot 3 para ofrecer un backend robusto, seguro y escalable. Proporciona autenticación basada en JWT, gestión de usuarios y roles, administración de barberías, disponibilidad de barberos, catálogo de servicios, programación de citas y registro de pagos.
 
 ## Tecnologías Utilizadas
-- **Java 21**: Lenguaje de programación principal
-- **Spring Boot 3.5.0**: Framework para el desarrollo de aplicaciones Java
-- **Spring Security**: Para la gestión de autenticación y autorización
-- **Spring Data JPA**: Para la persistencia de datos
-- **PostgreSQL**: Base de datos relacional
-- **JWT (JSON Web Tokens)**: Para la autenticación basada en tokens
-- **Swagger/OpenAPI**: Para la documentación de la API
-- **MapStruct**: Para el mapeo entre DTOs y entidades
-- **Lombok**: Para reducir código boilerplate
-- **Docker**: Para la contenerización de la aplicación
-- **Maven**: Para la gestión de dependencias y construcción del proyecto
+- Java 21
+- Spring Boot 3.5.0
+- Spring Security (JWT)
+- Spring Data JPA (Hibernate)
+- PostgreSQL
+- MapStruct
+- Lombok
+- Swagger/OpenAPI (Springdoc)
+- Maven
+- Docker
+- SLF4J + Logback (logging)
 
-## Arquitectura del Proyecto
-El proyecto sigue una arquitectura modular basada en características (feature-based), con los siguientes módulos:
+## Arquitectura y Módulos
+Arquitectura modular basada en características (feature-based), con separación por capas: Controller → Service → Repository → Model/DTO.
 
-### Módulos Implementados
-- **Auth**: Sistema de autenticación y autorización
-- **User**: Gestión de usuarios
-- **Barbershop**: Gestión de barberías
-- **Barber**: Gestión de barberos y disponibilidad
-- **Service**: Gestión de servicios ofrecidos
-- **Appointment**: Gestión de citas
-- **Payment**: Gestión de pagos
-- **Common**: Utilidades y componentes compartidos
+Módulos:
+- Auth: autenticación y autorización
+- User: gestión de usuarios y roles
+- Barbershop: gestión de barberías
+- Barber: gestión de barberos y disponibilidad
+- Service: gestión de servicios
+- Appointment: sistema de citas
+- Payment: registro de pagos
+- Common: utilidades compartidas (excepciones, validaciones, respuestas estándar)
 
-### Características Implementadas
-- ✅ **Autenticación JWT**: Registro, inicio de sesión y cambio de contraseña
-- ✅ **Gestión de Usuarios**: Modelo de usuario con roles (Cliente, Barbero, Administrador)
-- ✅ **Sistema de Soft Delete**: Eliminación lógica de registros manteniendo integridad de datos
-- ✅ **Manejo Global de Excepciones**: Centralizado en GlobalExceptionHandler
-- ✅ **Validación de Datos**: Validaciones personalizadas y estándar
-- ✅ **Documentación API**: Swagger/OpenAPI completamente configurado
-- ✅ **Configuración Multi-ambiente**: Perfiles dev y prod
-- ✅ **Seguridad**: Configuración completa de Spring Security
-- ✅ **Mapeo de Entidades**: MapStruct para conversión DTO-Entity
+## Características Clave
+- Autenticación JWT: registro, inicio de sesión, cambio de contraseña y verificación de email
+- Seguridad: configuración completa de Spring Security y roles (Cliente, Barbero, Admin)
+- Soft Delete: preserva integridad y permite restauración de registros
+- Validación: Bean Validation y validaciones personalizadas
+- Excepciones: manejo global con `@ControllerAdvice`
+- Documentación: Swagger/OpenAPI totalmente configurado
+- Logging: trazas estructuradas en `logs/calibarber-dev.log`
 
-## Configuración del Proyecto
-La aplicación está configurada para ejecutarse en el puerto 8080 por defecto y utiliza PostgreSQL como base de datos. La configuración se puede personalizar a través de variables de entorno.
+## Configuración y Perfiles
+- dev: desarrollo local con PostgreSQL
+- prod: producción con variables de entorno
 
-### Perfiles de Configuración
-- **dev**: Desarrollo local con base de datos PostgreSQL local
-- **prod**: Producción con variables de entorno
+Variables de entorno típicas:
+- `SPRING_PROFILES_ACTIVE=dev`
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`
 
 ## Requisitos
-- Java 21 o superior
-- PostgreSQL 13 o superior
-- Maven 3.8 o superior
-- Docker (opcional, para contenerización)
+- Java 21+
+- PostgreSQL 13+
+- Maven 3.8+
+- Docker (opcional)
 
-## Ejecución del Proyecto
+## Instalación y Ejecución
 
-### Configuración de Base de Datos
-1. Instalar PostgreSQL
-2. Crear base de datos: `calibarber_db`
-3. Configurar credenciales en `application-dev.properties`
+### Base de Datos
+1. Instala PostgreSQL
+2. Crea la base de datos: `calibarber_db`
+3. Configura credenciales en `application-dev.properties`
 
-### Usando Maven
-```bash
-# Compilar el proyecto
-mvn clean compile
-
-# Ejecutar pruebas
-mvn test
-
-# Ejecutar la aplicación
-mvn spring-boot:run
+Ejemplo `src/main/resources/application-dev.properties` (orientativo):
+```
+spring.datasource.url=jdbc:postgresql://localhost:5432/calibarber_db
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+springdoc.api-docs.enabled=true
 ```
 
-### Usando Docker
-```bash
-docker-compose up
-```
+### Con Maven
+- Compilar: `mvn clean compile`
+- Pruebas: `mvn test`
+- Ejecutar: `mvn spring-boot:run`
 
-## Acceso a la Documentación de la API
-Una vez que la aplicación esté en ejecución, puede acceder a la documentación de la API en:
-```
-http://localhost:8080/swagger-ui.html
-```
+En Windows puedes usar el wrapper: `mvnw.cmd spring-boot:run`
 
-## Endpoints Implementados
+## Documentación de la API
+Una vez en ejecución, accede a Swagger UI:
+- `http://localhost:8080/swagger-ui.html`
 
-### Autenticación (/auth)
-- ✅ `POST /auth/sign-in`: Inicio de sesión
-- ✅ `POST /auth/sign-up`: Registro de nuevos usuarios
-- ✅ `PUT /auth/change-password`: Cambio de contraseña
-- ✅ `GET /auth/check-email`: Verificación de disponibilidad de email
+## Endpoints Principales
 
-### Usuarios (/user)
-- ⚠️ `GET /user/findAll`: Obtener todos los usuarios (implementación básica)
+### Autenticación (`/auth`)
+- `POST /auth/sign-in`: inicio de sesión
+- `POST /auth/sign-up`: registro
+- `PUT /auth/change-password`: cambio de contraseña
+- `GET /auth/check-email`: verificación de disponibilidad de email
+
+### Usuarios (`/api/v1/users`)
+- `GET /api/v1/users`: listado básico (implementación inicial)
 
 ## Sistema de Soft Delete
 
-El sistema implementa **eliminación lógica (soft delete)** para mantener la integridad de los datos y permitir la recuperación de registros eliminados. Esta funcionalidad está disponible para las siguientes entidades:
+Entidades:
+- Usuarios: conservan historial sin perder referencias
+- Barberías: útiles para reportes y auditorías
 
-### Entidades con Soft Delete
-- **Usuarios**: Marcados como eliminados sin perder el historial
-- **Barberías**: Preservación de datos para reportes históricos
+Características:
+- Campos: `isDeleted` y `deletedAt`
+- Filtro automático en consultas
+- Restauración de registros
+- Endpoints administrativos para inspección
 
-### Características del Soft Delete
-- **Campos de Control**: `isDeleted` (boolean) y `deletedAt` (timestamp)
-- **Filtrado Automático**: Las consultas excluyen automáticamente registros eliminados
-- **Restauración**: Posibilidad de restaurar registros eliminados
-- **Consultas Administrativas**: Endpoints especiales para ver registros eliminados
+Endpoints:
+- `DELETE /api/v1/users?id={userId}`
+- `POST /api/v1/users/restore?id={userId}`
+- `GET /api/v1/users/deleted`
+- `DELETE /api/v1/barbershops?id={barbershopId}`
+- `POST /api/v1/barbershops/restore?id={barbershopId}`
+- `GET /api/v1/barbershops/deleted`
 
-### Endpoints de Soft Delete
-- `DELETE /api/v1/users?id={userId}`: Eliminación lógica de usuario
-- `POST /api/v1/users/restore?id={userId}`: Restauración de usuario eliminado
-- `GET /api/v1/users/deleted`: Consulta de usuarios eliminados (solo administradores)
-- `DELETE /api/v1/barbershops?id={barbershopId}`: Eliminación lógica de barbería
-- `POST /api/v1/barbershops/restore?id={barbershopId}`: Restauración de barbería eliminada
-- `GET /api/v1/barbershops/deleted`: Consulta de barberías eliminadas (solo administradores)
+## Integración con el Frontend
+Este backend se integra con el cliente Angular del proyecto Calibarber: https://github.com/andresmtataseo/Calibarber-Frontend. Asegúrate de habilitar CORS según sea necesario y mantener consistentes las rutas y contratos de la API.
 
-### Beneficios
-- **Integridad de Datos**: Preserva relaciones y referencias históricas
-- **Auditoría**: Mantiene un registro completo de todas las operaciones
-- **Recuperación**: Permite deshacer eliminaciones accidentales
-- **Cumplimiento**: Facilita el cumplimiento de regulaciones de retención de datos
+## Despliegue con Docker
+Arranca servicios con:
+```
+docker-compose up
+```
 
-## Funcionalidades Pendientes por Implementar
-
-### 🔴 Críticas (Alta Prioridad)
-1. **Repositorios Faltantes**
-   - BarbershopRepository
-   - BarberRepository
-   - ServiceRepository
-   - AppointmentRepository
-   - PaymentRepository
-
-2. **Servicios Faltantes**
-   - UserService (CRUD completo)
-   - BarbershopService
-   - BarberService
-   - ServiceService
-   - AppointmentService
-   - PaymentService
-
-3. **Controladores Faltantes**
-   - BarbershopController
-   - BarberController
-   - ServiceController
-   - AppointmentController
-   - PaymentController
-
-### 🟡 Importantes (Media Prioridad)
-4. **Funcionalidades de Autenticación**
-   - Recuperación de contraseña (forgot-password)
-   - Reset de contraseña (reset-password)
-   - Verificación de autenticación (check-auth)
-   - Refresh token
-
-5. **Gestión de Usuarios**
-   - CRUD completo de usuarios
-   - Gestión de perfiles
-   - Cambio de roles
-   - Activación/desactivación de usuarios
-
-6. **Gestión de Barberías**
-   - CRUD de barberías
-   - Gestión de horarios de operación
-   - Subida de logos
-
-### 🟢 Deseables (Baja Prioridad)
-7. **Gestión de Barberos**
-   - CRUD de barberos
-   - Gestión de disponibilidad
-   - Especialidades
-
-8. **Gestión de Servicios**
-   - CRUD de servicios
-   - Categorización
-   - Precios dinámicos
-
-9. **Sistema de Citas**
-   - Creación de citas
-   - Cancelación y reprogramación
-   - Notificaciones
-   - Historial de citas
-
-10. **Sistema de Pagos**
-    - Procesamiento de pagos
-    - Historial de transacciones
-    - Reportes financieros
-
-### 🔧 Mejoras Técnicas
-11. **Testing**
-    - Pruebas unitarias para servicios
-    - Pruebas de integración
-    - Pruebas de controladores
-
-12. **Seguridad**
-    - Rate limiting
-    - Validación de entrada mejorada
-    - Auditoría de acciones
-
-13. **Performance**
-    - Caché de datos
-    - Paginación
-    - Optimización de consultas
-
-14. **Monitoreo**
-    - Métricas de aplicación
-    - Health checks
-    - Logging estructurado
-
-## Buenas Prácticas Implementadas
-- ✅ Arquitectura modular por características
-- ✅ Separación de responsabilidades (Controller-Service-Repository)
-- ✅ DTOs para transferencia de datos
-- ✅ Mappers para conversión de objetos
-- ✅ Manejo centralizado de excepciones
-- ✅ Validaciones de entrada
-- ✅ Documentación de API
-- ✅ Configuración por perfiles
-- ✅ Uso de anotaciones Spring apropiadas
-- ✅ Principios SOLID aplicados
-
-## Estado del Proyecto
-Este proyecto se encuentra en **desarrollo activo** como parte de un diplomado. La base arquitectónica está sólida y lista para la implementación de las funcionalidades pendientes. El sistema de autenticación y la estructura modular proporcionan una base robusta para el desarrollo continuo.
+## Buenas Prácticas
+- Arquitectura modular por características
+- Separación de responsabilidades (Controller–Service–Repository)
+- DTOs y mapeo con MapStruct
+- Excepciones centralizadas
+- Validaciones de entrada
+- Documentación con OpenAPI
+- Perfiles y configuración por entorno
+- Anotaciones Spring apropiadas
+- Principios SOLID
